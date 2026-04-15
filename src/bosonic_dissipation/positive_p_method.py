@@ -1,0 +1,368 @@
+from __future__ import annotations
+
+from dataclasses import dataclass
+from time import perf_counter
+from typing import Literal
+
+import numpy as np
+
+from .exact_method import _get_array_module, _validate_initial_state
+from .io_utils import save_method_output_csv
+
+
+ArrayBackend = Literal["cpu", "gpu"]
+
+ALPHA_INDEX = 0
+ALPHA_PLUS_INDEX = 1
+
+
+@dataclass(slots=True)
+class PositivePMethodResult:
+    method_name: str
+    initial_state_type: str
+    num_of_particles: float
+    interaction_strength: float
+    gamma: float
+    total_time: float
+    dt: float
+    num_of_samples: int
+    backend: ArrayBackend
+    runtime_seconds: float
+    fast_path_used: bool
+    notes: str
+    time_values: np.ndarray
+    mean_particle_number: np.ndarray
+    variance: np.ndarray
+    mean_particle_number_imag: np.ndarray
+    variance_imag: np.ndarray
+    second_moment_real: np.ndarray
+    second_moment_imag: np.ndarray
+
+
+def _sample_positive_p_initial_state(
+    *,
+    initial_state_type: str,
+    num_of_particles: float,
+    num_of_samples: int,
+    xp,
+    rng,
+):
+    """Return samples with shape (num_samples, num_sites=1, components=2).
+
+    Internal component convention for this project:
+    - `state[..., ALPHA_INDEX]` is Olsen-style `alpha`
+    - `state[..., ALPHA_PLUS_INDEX]` is Olsen-style `alphaPlus`
+
+    Mapping to the Deuar-style notation you asked about:
+    - Deuar et al. (2012): `alpha`, `alphaTilde`
+    - Olsen: `alpha`, `alphaPlus`
+    - relation used here: `alphaTilde = conj(alphaPlus)`
+
+    Because the Positive-P estimators are simplest in Olsen notation, we store
+    `alphaPlus` internally and use:
+    - mean particle number: <alpha * alphaPlus>
+    - second factorial moment: <(alpha * alphaPlus)^2>
+
+    For the Fock-state sampler this means:
+    - alpha = gamma_sample + mu
+    - alphaPlus = conj(gamma_sample) - conj(mu)
+
+    This is the directly consistent version of Olsen's formulas.
+    """
+
+    state = xp.zeros((num_of_samples, 1, 2), dtype=xp.complex128)
+
+    if initial_state_type == "coherent":
+        coherent_amplitude = xp.sqrt(xp.asarray(num_of_particles, dtype=xp.float64))
+        state[:, 0, ALPHA_INDEX] = coherent_amplitude
+        state[:, 0, ALPHA_PLUS_INDEX] = coherent_amplitude
+        return state
+
+    eta1 = rng.standard_normal(num_of_samples)
+    eta2 = rng.standard_normal(num_of_samples)
+    mu = (eta1 + 1j * eta2) / xp.sqrt(2.0)
+
+    fock_gamma_radius_sq = rng.gamma(shape=num_of_particles + 1.0, scale=1.0, size=num_of_samples)
+    fock_gamma_phase = rng.uniform(0.0, 2.0 * xp.pi, size=num_of_samples)
+    fock_gamma_sample = xp.sqrt(fock_gamma_radius_sq) * xp.exp(1j * fock_gamma_phase)
+
+    state[:, 0, ALPHA_INDEX] = fock_gamma_sample + mu
+    state[:, 0, ALPHA_PLUS_INDEX] = xp.conjugate(fock_gamma_sample) - xp.conjugate(mu)
+    return state
+
+
+def _compute_u0_positive_p_observables(
+    *,
+    initial_state_type: str,
+    num_of_particles: float,
+    gamma: float,
+    time_values_backend,
+    num_of_samples: int,
+    xp,
+    rng,
+):
+    if initial_state_type == "coherent":
+        mean_particle_number = num_of_particles * xp.exp(-gamma * time_values_backend)
+        variance = mean_particle_number.copy()
+        second_moment = variance - mean_particle_number + mean_particle_number**2
+        zeros = xp.zeros_like(mean_particle_number)
+        return mean_particle_number, variance, second_moment, zeros, zeros, zeros, True
+
+    initial_state = _sample_positive_p_initial_state(
+        initial_state_type=initial_state_type,
+        num_of_particles=num_of_particles,
+        num_of_samples=num_of_samples,
+        xp=xp,
+        rng=rng,
+    )
+    alpha0 = initial_state[:, 0, ALPHA_INDEX]
+    alpha_plus0 = initial_state[:, 0, ALPHA_PLUS_INDEX]
+    decay = xp.exp(-0.5 * gamma * time_values_backend)
+    occupation_samples = (alpha0[:, None] * alpha_plus0[:, None]) * (decay[None, :] ** 2)
+    second_moment_samples = occupation_samples**2
+
+    mean_particle_number_complex = xp.mean(occupation_samples, axis=0)
+    second_moment_complex = xp.mean(second_moment_samples, axis=0)
+    variance_complex = second_moment_complex + mean_particle_number_complex - mean_particle_number_complex**2
+    return (
+        mean_particle_number_complex,
+        variance_complex,
+        second_moment_complex,
+        xp.imag(mean_particle_number_complex),
+        xp.imag(variance_complex),
+        xp.imag(second_moment_complex),
+        False,
+    )
+
+
+def _simulate_positive_p_interacting_single_site(
+    *,
+    initial_state_type: str,
+    num_of_particles: float,
+    interaction_strength: float,
+    gamma: float,
+    dt: float,
+    num_of_samples: int,
+    time_values_backend,
+    xp,
+    rng,
+):
+    """Vectorized single-site Positive-P template for nonzero interaction.
+
+    This batches all trajectories together:
+    - axis 0 = trajectory/sample
+    - axis 1 = time index
+
+    That means we only loop over time steps in Python and update every sample
+    at once, which is much faster than a Python loop over samples and is also
+    compatible with `cupy` GPU arrays.
+
+    Interaction convention in this template:
+    - alpha and alphaPlus are treated as independent Positive-P variables
+    - the drift/noise signs follow a common single-mode Kerr-style template
+    - this should be sanity-checked against the exact reference you decide to
+      follow for your thesis before you rely on it for final physics results
+    """
+
+    initial_state = _sample_positive_p_initial_state(
+        initial_state_type=initial_state_type,
+        num_of_particles=num_of_particles,
+        num_of_samples=num_of_samples,
+        xp=xp,
+        rng=rng,
+    )
+    alpha = initial_state[:, 0, ALPHA_INDEX].copy()
+    alpha_plus = initial_state[:, 0, ALPHA_PLUS_INDEX].copy()
+
+    num_times = int(time_values_backend.shape[0])
+    occupation_samples = xp.empty((num_of_samples, num_times), dtype=xp.complex128)
+    occupation_samples[:, 0] = alpha * alpha_plus
+
+    sqrt_minus_i_u = xp.sqrt(-1j * interaction_strength)
+    sqrt_plus_i_u = xp.sqrt(1j * interaction_strength)
+    sqrt_dt = xp.sqrt(dt)
+
+    for time_index in range(1, num_times):
+        noise_1 = rng.standard_normal(num_of_samples) * sqrt_dt
+        noise_2 = rng.standard_normal(num_of_samples) * sqrt_dt
+
+        drift_alpha = -0.5 * gamma * alpha - 1j * interaction_strength * alpha * alpha_plus * alpha
+        drift_alpha_plus = -0.5 * gamma * alpha_plus + 1j * interaction_strength * alpha_plus * alpha * alpha_plus
+
+        alpha = alpha + drift_alpha * dt + sqrt_minus_i_u * alpha * noise_1
+        alpha_plus = alpha_plus + drift_alpha_plus * dt + sqrt_plus_i_u * alpha_plus * noise_2
+
+        occupation_samples[:, time_index] = alpha * alpha_plus
+
+    second_moment_samples = occupation_samples**2
+    mean_particle_number_complex = xp.mean(occupation_samples, axis=0)
+    second_moment_complex = xp.mean(second_moment_samples, axis=0)
+    variance_complex = second_moment_complex + mean_particle_number_complex - mean_particle_number_complex**2
+    return mean_particle_number_complex, variance_complex, second_moment_complex
+
+
+def simulate_positive_p_method(
+    *,
+    initial_state_type: str,
+    num_of_particles: float,
+    interaction_strength: float = 0.0,
+    gamma: float,
+    time: float,
+    dt: float,
+    num_of_samples: int,
+    prefer_gpu: bool = True,
+    seed: int | None = None,
+):
+    initial_state_type = _validate_initial_state(initial_state_type)
+
+    if dt <= 0:
+        raise ValueError("dt must be positive.")
+    if time <= 0:
+        raise ValueError("time must be positive.")
+    if gamma < 0:
+        raise ValueError("gamma must be non-negative.")
+    if num_of_samples <= 0:
+        raise ValueError("num_of_samples must be positive.")
+    if initial_state_type == "fock" and not float(num_of_particles).is_integer():
+        raise ValueError("For a fock state, num_of_particles should be an integer.")
+
+    xp, backend = _get_array_module(prefer_gpu=prefer_gpu)
+
+    if backend == "gpu":
+        rng = xp.random.default_rng(seed)
+    else:
+        rng = np.random.default_rng(seed)
+
+    start = perf_counter()
+
+    time_values_backend = xp.arange(0.0, time + dt, dt, dtype=xp.float64)
+    if interaction_strength == 0.0:
+        (
+            mean_particle_number_complex,
+            variance_complex,
+            second_moment_complex,
+            mean_particle_number_imag,
+            variance_imag,
+            second_moment_imag,
+            coherent_fast_path_used,
+        ) = _compute_u0_positive_p_observables(
+            initial_state_type=initial_state_type,
+            num_of_particles=num_of_particles,
+            gamma=gamma,
+            time_values_backend=time_values_backend,
+            num_of_samples=num_of_samples,
+            xp=xp,
+            rng=rng,
+        )
+        if initial_state_type == "coherent":
+            fast_path_used = coherent_fast_path_used
+            notes = (
+                "interaction_strength = 0 and the coherent-state Positive-P representation is deterministic here, "
+                "so num_of_samples was ignored in the fast path."
+            )
+        else:
+            fast_path_used = False
+            notes = (
+                "interaction_strength = 0, so the time evolution is deterministic, but the Fock-state Positive-P "
+                "initial representation was still sampled across num_of_samples trajectories."
+            )
+    else:
+        mean_particle_number_complex, variance_complex, second_moment_complex = _simulate_positive_p_interacting_single_site(
+            initial_state_type=initial_state_type,
+            num_of_particles=num_of_particles,
+            interaction_strength=interaction_strength,
+            gamma=gamma,
+            dt=dt,
+            num_of_samples=num_of_samples,
+            time_values_backend=time_values_backend,
+            xp=xp,
+            rng=rng,
+        )
+        mean_particle_number_imag = xp.imag(mean_particle_number_complex)
+        variance_imag = xp.imag(variance_complex)
+        second_moment_imag = xp.imag(second_moment_complex)
+        fast_path_used = False
+        notes = (
+            "interaction_strength != 0, so the vectorized stochastic Positive-P template was used. "
+            "Trajectories were batched across samples for speed."
+        )
+
+    if backend == "gpu":
+        time_values = xp.asnumpy(time_values_backend)
+        mean_particle_number_complex = xp.asnumpy(mean_particle_number_complex)
+        second_moment_complex = xp.asnumpy(second_moment_complex)
+        variance_complex = xp.asnumpy(variance_complex)
+        mean_particle_number_imag = xp.asnumpy(mean_particle_number_imag)
+        variance_imag = xp.asnumpy(variance_imag)
+        second_moment_imag = xp.asnumpy(second_moment_imag)
+    else:
+        time_values = np.asarray(time_values_backend)
+        mean_particle_number_complex = np.asarray(mean_particle_number_complex)
+        second_moment_complex = np.asarray(second_moment_complex)
+        variance_complex = np.asarray(variance_complex)
+        mean_particle_number_imag = np.asarray(mean_particle_number_imag)
+        variance_imag = np.asarray(variance_imag)
+        second_moment_imag = np.asarray(second_moment_imag)
+
+    runtime_seconds = perf_counter() - start
+    return PositivePMethodResult(
+        method_name="positiveP",
+        initial_state_type=initial_state_type,
+        num_of_particles=num_of_particles,
+        interaction_strength=interaction_strength,
+        gamma=gamma,
+        total_time=time,
+        dt=dt,
+        num_of_samples=num_of_samples,
+        backend=backend,
+        runtime_seconds=runtime_seconds,
+        fast_path_used=fast_path_used,
+        notes=notes,
+        time_values=time_values,
+        mean_particle_number=np.real(mean_particle_number_complex),
+        variance=np.real(variance_complex),
+        mean_particle_number_imag=np.asarray(mean_particle_number_imag),
+        variance_imag=np.asarray(variance_imag),
+        second_moment_real=np.real(second_moment_complex),
+        second_moment_imag=np.asarray(second_moment_imag),
+    )
+
+
+def run_positive_p_and_save(
+    output_dir: str,
+    *,
+    initial_state_type: str,
+    num_of_particles: float,
+    interaction_strength: float = 0.0,
+    gamma: float,
+    time: float,
+    dt: float,
+    num_of_samples: int,
+    prefer_gpu: bool = True,
+    seed: int | None = None,
+):
+    result = simulate_positive_p_method(
+        initial_state_type=initial_state_type,
+        num_of_particles=num_of_particles,
+        interaction_strength=interaction_strength,
+        gamma=gamma,
+        time=time,
+        dt=dt,
+        num_of_samples=num_of_samples,
+        prefer_gpu=prefer_gpu,
+        seed=seed,
+    )
+    output_path = save_method_output_csv(
+        output_dir,
+        method_name=result.method_name,
+        initial_state_type=result.initial_state_type,
+        num_of_particles=result.num_of_particles,
+        gamma=result.gamma,
+        time=result.total_time,
+        dt=result.dt,
+        num_of_samples=result.num_of_samples,
+        time_values=result.time_values,
+        mean_values=result.mean_particle_number,
+        variance_values=result.variance,
+    )
+    return result, output_path
