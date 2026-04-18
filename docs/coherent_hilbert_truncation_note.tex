@@ -1,0 +1,222 @@
+\documentclass[12pt]{article}
+\usepackage[a4paper,margin=1in]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage{mathtools}
+\usepackage{bm}
+
+\title{Numerically Stable Coherent-State Hilbert-Space Truncation}
+\author{}
+\date{}
+
+\begin{document}
+\maketitle
+
+\section*{Purpose}
+For the single-site coherent-state runs in this project, we choose the smallest Hilbert-space truncation that preserves the coherent-state mean particle number to within a prescribed relative tolerance. The original implementation used a direct finite sum containing factorials. That formula is physically correct, but it becomes numerically unstable for large mean occupation. This note records the original formula, derives a better equivalent expression, and explains why the new algorithm is preferred.
+
+\section*{Original Truncation Criterion}
+Let
+\[
+\mu = |\alpha|^2
+\]
+denote the coherent-state mean particle number. The coherent-state number distribution is Poisson:
+\[
+P(n) = e^{-\mu}\frac{\mu^n}{n!}, \qquad n=0,1,2,\dots
+\]
+
+If the occupation basis is truncated at a maximum occupation $x$, then the truncated mean particle number is
+\[
+\langle n \rangle_x
+= e^{-\mu}\sum_{n=0}^{x} n\,\frac{\mu^n}{n!}.
+\]
+
+In the project, the full coherent-state mean is
+\[
+\langle n \rangle_\infty = \mu,
+\]
+and the truncation rule is:
+\[
+\left|\langle n \rangle_x - \mu\right| \le \varepsilon \mu,
+\]
+where $\varepsilon$ is the adjustable relative tolerance, currently $0.01$ for a $1\%$ criterion.
+
+The Hilbert-space size is then
+\[
+d = x+1,
+\]
+because the basis includes occupations $0,1,\dots,x$.
+
+\section*{Why the Original Direct Sum Is Problematic}
+The direct implementation evaluates terms of the form
+\[
+e^{-\mu}\frac{\mu^n}{n!}.
+\]
+For large $\mu$ and large $n$, this is a poor numerical strategy because:
+\begin{itemize}
+\item $\mu^n$ becomes enormous and can overflow.
+\item $n!$ grows extremely rapidly and can also overflow.
+\item Even when both quantities are representable individually, their ratio may suffer severe loss of numerical accuracy.
+\item The implementation has to repeat this unstable computation many times while searching for the smallest acceptable cutoff.
+\end{itemize}
+
+In practice, this is exactly what breaks for large coherent occupations such as $\mu = 1000$ and beyond.
+
+\section*{Key Identity for the Truncated Mean}
+We now derive an equivalent formula that avoids direct factorial summation in the mean calculation.
+
+Start from
+\[
+\langle n \rangle_x = \sum_{n=0}^{x} nP(n).
+\]
+Since the $n=0$ term vanishes, we write
+\[
+\langle n \rangle_x = \sum_{n=1}^{x} n\,e^{-\mu}\frac{\mu^n}{n!}.
+\]
+Now use
+\[
+n\frac{\mu^n}{n!} = \mu\frac{\mu^{n-1}}{(n-1)!}.
+\]
+Therefore
+\[
+\langle n \rangle_x
+= \mu e^{-\mu}\sum_{n=1}^{x}\frac{\mu^{n-1}}{(n-1)!}.
+\]
+Let $m=n-1$. Then
+\[
+\langle n \rangle_x
+= \mu e^{-\mu}\sum_{m=0}^{x-1}\frac{\mu^m}{m!}.
+\]
+Recognizing the Poisson cumulative distribution function,
+\[
+F_{\text{Pois}}(k;\mu)
+= \sum_{m=0}^{k} e^{-\mu}\frac{\mu^m}{m!},
+\]
+we obtain the exact identity
+\[
+\boxed{
+\langle n \rangle_x = \mu\,F_{\text{Pois}}(x-1;\mu)
+}
+\qquad \text{for } x \ge 1.
+\]
+
+\section*{Tail-Error Formulation}
+The truncation error in the mean is
+\[
+\mu - \langle n \rangle_x
+= \mu\left(1 - F_{\text{Pois}}(x-1;\mu)\right).
+\]
+Using the Poisson survival function
+\[
+S_{\text{Pois}}(k;\mu) = 1 - F_{\text{Pois}}(k;\mu),
+\]
+we get
+\[
+\boxed{
+\mu - \langle n \rangle_x
+= \mu\,S_{\text{Pois}}(x-1;\mu)
+}.
+\]
+
+Hence the original relative-tolerance rule
+\[
+\left|\langle n \rangle_x - \mu\right| \le \varepsilon\mu
+\]
+is equivalent to
+\[
+\mu\,S_{\text{Pois}}(x-1;\mu) \le \varepsilon\mu,
+\]
+and for $\mu>0$ this simplifies to
+\[
+\boxed{
+S_{\text{Pois}}(x-1;\mu) \le \varepsilon
+}.
+\]
+
+This is the most important result: instead of summing the truncated first moment directly, we only need the Poisson tail probability.
+
+\section*{Why the New Formulation Is Better}
+The new formulation is preferable for several reasons.
+
+\subsection*{1. It is mathematically equivalent}
+We did not change the physics criterion. We only rewrote the same truncated-mean condition in a more stable form. The selected Hilbert-space size still means:
+\begin{quote}
+Choose the smallest occupation cutoff whose missing contribution to the coherent-state mean is below the chosen relative tolerance.
+\end{quote}
+
+\subsection*{2. It avoids direct factorial overflow}
+The old implementation explicitly evaluated $\mu^n/n!$ term by term. The new implementation calls a numerically stable Poisson CDF / survival-function backend from SciPy, which is specifically designed for this type of probability calculation.
+
+\subsection*{3. It gives a monotone search criterion}
+As $x$ increases, the Poisson tail $S_{\text{Pois}}(x-1;\mu)$ decreases monotonically. Therefore the acceptance criterion is monotone:
+\[
+x \uparrow \quad \Longrightarrow \quad S_{\text{Pois}}(x-1;\mu)\downarrow.
+\]
+This means we can use a reliable search strategy:
+\begin{enumerate}
+\item Start from a reasonable upper guess.
+\item Double it until the tolerance is satisfied.
+\item Use binary search to find the smallest acceptable cutoff.
+\end{enumerate}
+This is much cleaner than incrementing one occupation at a time with an unstable inner sum.
+
+\subsection*{4. It scales to much larger coherent occupations}
+The old implementation breaks for large $\mu$ because of overflow in the direct Poisson-series terms. The new implementation is stable for large coherent-state occupations because it relies on special-function evaluations rather than raw factorial arithmetic.
+
+\section*{Final Algorithm Used in Code}
+Let $\mu = \texttt{num\_of\_particles}$ and let $\varepsilon$ be the relative tolerance.
+
+\subsection*{Step 1: Define the acceptance test}
+For a candidate maximum occupation $x$, compute the missing mean
+\[
+\Delta_x = \mu\,S_{\text{Pois}}(x-1;\mu).
+\]
+Accept the truncation when
+\[
+\Delta_x \le \varepsilon \mu.
+\]
+
+\subsection*{Step 2: Find an upper bound}
+Start with
+\[
+x_{\text{high}} = \max(1,\lceil \mu \rceil).
+\]
+If this is not sufficient, repeatedly double it until the criterion is satisfied.
+
+\subsection*{Step 3: Binary search}
+Once we have:
+\begin{itemize}
+\item a lower cutoff that fails, and
+\item an upper cutoff that passes,
+\end{itemize}
+apply binary search to obtain the smallest acceptable $x$.
+
+\subsection*{Step 4: Convert to Hilbert-space size}
+The Hilbert-space size is
+\[
+d = x+1.
+\]
+
+\section*{Why This Is the Best Choice Here}
+Among the possible alternatives, this approach is the best fit for the project.
+
+\subsection*{Compared with direct factorial summation}
+It is vastly more stable and avoids overflow.
+
+\subsection*{Compared with a recursive Poisson-term summation}
+Recursive summation is better than raw factorials, but it is still less direct than using the exact CDF / survival-function identity for the truncation criterion.
+
+\subsection*{Compared with a normal approximation}
+A normal approximation could provide a rough estimate for large $\mu$, but it changes the criterion from exact Poisson-tail control to an approximation. Since SciPy is already available, there is no reason to give up the exact Poisson-based criterion here.
+
+\section*{Conclusion}
+The project now uses a numerically stable coherent-state truncation algorithm based on the Poisson survival function. The new method:
+\begin{itemize}
+\item preserves the original physical tolerance rule,
+\item avoids factorial overflow,
+\item supports large coherent occupations much more reliably,
+\item and allows an efficient monotone search for the smallest acceptable Hilbert-space size.
+\end{itemize}
+
+This makes it the most appropriate formulation for future larger-scale coherent-state runs in the project.
+
+\end{document}

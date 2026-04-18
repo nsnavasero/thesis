@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from math import ceil, exp, factorial
+from math import ceil
 from typing import Optional
+
+from scipy import special
 
 
 DEFAULT_DT = 1e-3
@@ -40,13 +42,29 @@ def coherent_mean_from_truncation(num_of_particles: float, max_occupation: int) 
     if max_occupation < 0:
         raise ValueError("max_occupation must be non-negative.")
 
-    poisson_weight = exp(-num_of_particles)
-    truncated_mean_particle_number = 0.0
-    for occupation in range(max_occupation + 1):
-        truncated_mean_particle_number += (
-            poisson_weight * (num_of_particles**occupation) * occupation / factorial(occupation)
-        )
-    return truncated_mean_particle_number
+    if num_of_particles == 0:
+        return 0.0
+    if max_occupation == 0:
+        return 0.0
+
+    # For a Poisson-distributed coherent-state occupation with mean mu,
+    # \sum_{n=0}^{x} n P(n) = mu * \sum_{m=0}^{x-1} P(m).
+    # Using the Poisson CDF avoids the factorial-heavy direct series and
+    # remains stable for large mu.
+    return float(num_of_particles * special.pdtr(max_occupation - 1, num_of_particles))
+
+
+def coherent_missing_mean_from_truncation(num_of_particles: float, max_occupation: int) -> float:
+    if num_of_particles < 0:
+        raise ValueError("num_of_particles must be non-negative.")
+    if max_occupation < 0:
+        raise ValueError("max_occupation must be non-negative.")
+    if num_of_particles == 0:
+        return 0.0
+    if max_occupation == 0:
+        return float(num_of_particles)
+
+    return float(num_of_particles * special.pdtrc(max_occupation - 1, num_of_particles))
 
 
 def recommend_coherent_hilbert_size(
@@ -63,15 +81,27 @@ def recommend_coherent_hilbert_size(
 
     target_mean_particle_number = num_of_particles
     absolute_tolerance = relative_tolerance * target_mean_particle_number
-    max_occupation = 0
-    while True:
-        truncated_mean_particle_number = coherent_mean_from_truncation(
+
+    def tail_mean_is_small_enough(max_occupation: int) -> bool:
+        return coherent_missing_mean_from_truncation(
             num_of_particles=num_of_particles,
             max_occupation=max_occupation,
-        )
-        if abs(truncated_mean_particle_number - target_mean_particle_number) <= absolute_tolerance:
-            return max_occupation + 1
-        max_occupation += 1
+        ) <= absolute_tolerance
+
+    lower_fail = -1
+    upper_pass = max(1, int(ceil(num_of_particles)))
+    while not tail_mean_is_small_enough(upper_pass):
+        lower_fail = upper_pass
+        upper_pass *= 2
+
+    while upper_pass - lower_fail > 1:
+        midpoint = (lower_fail + upper_pass) // 2
+        if tail_mean_is_small_enough(midpoint):
+            upper_pass = midpoint
+        else:
+            lower_fail = midpoint
+
+    return upper_pass + 1
 
 
 def resolve_hilbert_size(
@@ -98,6 +128,7 @@ class MethodRunConfig:
     dt: Optional[float] = None
     num_of_samples: Optional[int] = None
     hilbert_size: Optional[int] = None
+    seed: Optional[int] = None
 
     def resolved_dt(self, fallback_dt: float = DEFAULT_DT) -> float:
         return fallback_dt if self.dt is None else self.dt

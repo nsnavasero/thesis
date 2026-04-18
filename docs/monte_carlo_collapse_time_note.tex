@@ -1,0 +1,104 @@
+\documentclass[12pt]{article}
+\usepackage[a4paper,margin=1in]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage{mathtools}
+
+\title{Why the Monte Carlo Solver Fails to Resolve the Collapse Time}
+\author{}
+\date{}
+
+\begin{document}
+\maketitle
+
+\section*{Purpose}
+This note explains the numerical meaning of the QuTiP Monte Carlo error
+\begin{quote}
+\texttt{Could not find the collapse time within desired tolerance.}
+\end{quote}
+and why this issue appears for the large-particle runs in the present project.
+
+\section*{Monte Carlo Wave-Function Picture}
+In the Monte Carlo wave-function (MCWF) method, the open-system evolution is represented by an ensemble of stochastic pure-state trajectories. Between quantum jumps, the state evolves under an effective non-Hermitian Hamiltonian,
+\[
+H_{\mathrm{eff}} = H - \frac{i}{2}\sum_j C_j^\dagger C_j,
+\]
+where the $C_j$ are collapse operators.
+
+For this project, the dissipative single-site model uses the loss operator
+\[
+C = \sqrt{\gamma}\,a.
+\]
+
+The non-Hermitian evolution causes the wavefunction norm to decrease. In the MCWF algorithm, a random number $r \in (0,1)$ is sampled, and a quantum jump is declared when the squared norm satisfies
+\[
+\lVert \psi(t) \rVert^2 = r.
+\]
+At that instant, the collapse operator is applied and the state is renormalized.
+
+\section*{What the Solver Must Actually Compute}
+Numerically, the solver does not know the jump time in advance. Instead, it must:
+\begin{enumerate}
+\item propagate the state forward in time,
+\item monitor the norm decay,
+\item detect that the threshold $r$ has been crossed,
+\item and then solve a root-finding problem to locate the jump time accurately.
+\end{enumerate}
+
+So the MCWF method is not only integrating a trajectory; it is also repeatedly solving a secondary problem:
+\[
+\text{find } t_c \text{ such that } \lVert \psi(t_c)\rVert^2 - r = 0.
+\]
+
+QuTiP's error message means that this internal collapse-time search did not converge to the required tolerance.
+
+\section*{Why This Becomes Difficult at Large Particle Number}
+For the large-particle runs in this project, especially at $n=1000$, the Monte Carlo method becomes numerically demanding for several related reasons.
+
+\subsection*{1. Large Hilbert-space truncation}
+The Fock-state and coherent-state Monte Carlo calculations both require a truncated Hilbert space. At large particle number, this truncation becomes large, so the state vector lives in a much higher-dimensional space. This makes each trajectory propagation more expensive and also increases the numerical burden of evaluating jump conditions accurately.
+
+\subsection*{2. Rapid and repeated jump structure}
+With strong occupation, the effective loss dynamics can produce many jumps across a trajectory ensemble. Even when the physical model is simple, the numerical algorithm must repeatedly locate jump times precisely. If the norm falls across the threshold in a numerically awkward way, the root finder may fail to bracket or refine the jump time within the allowed tolerance.
+
+\subsection*{3. Sensitivity of the norm search}
+The jump condition depends on the trajectory norm, not just on expectation values. Therefore the solver must resolve a threshold-crossing event accurately at the trajectory level. This is more delicate than simply integrating a deterministic expectation-value equation.
+
+\subsection*{4. Accumulated numerical difficulty across many trajectories}
+The Monte Carlo solver is not run once: it is run for many trajectories. Even if most trajectories succeed, a failure in the collapse-time resolution for one trajectory is enough to stop the full solve. Hence large ensembles at large Hilbert-space size are significantly more fragile than small-particle runs.
+
+\section*{Interpretation of the QuTiP Error}
+When QuTiP reports
+\begin{quote}
+\texttt{Could not find the collapse time within desired tolerance,}
+\end{quote}
+it does \emph{not} mean that the physical model is invalid. It means that, for the chosen numerical settings, the solver could not locate the jump time accurately enough.
+
+In practical terms, QuTiP has detected that a jump should occur somewhere in the current integration interval, but its internal search for the precise collapse time failed to converge under the active tolerance and step constraints.
+
+\section*{Why This Is Especially Relevant for This Project}
+In the present work, the Monte Carlo method is kept as a genuine trajectory-based dissipative solver, even when $U=0$, because trajectory averaging is part of the method's computational character. This makes its scaling limitations important to document.
+
+At small particle number, the solver behaves well and the method can be benchmarked normally. At very large particle number, however, the difficulty is no longer merely runtime. The collapse-time search itself becomes a stability bottleneck, and the run may fail before completion.
+
+This is therefore a meaningful methodological limitation:
+\begin{itemize}
+\item the Monte Carlo method remains physically well motivated,
+\item but its numerical implementation becomes increasingly fragile in large truncated spaces,
+\item especially when accurate jump-time localization is required across many trajectories.
+\end{itemize}
+
+\section*{What QuTiP Suggests}
+QuTiP recommends adjusting options such as:
+\begin{itemize}
+\item \texttt{norm\_steps},
+\item \texttt{norm\_tol},
+\item \texttt{norm\_t\_tol}.
+\end{itemize}
+These settings control how aggressively the solver searches for the jump time and how strict the acceptance criteria are. In other words, they do not change the physics of the model; they change the numerical effort and tolerance used in collapse-time resolution.
+
+\section*{Conclusion}
+The Monte Carlo failure at large particle number is best understood as a \textbf{collapse-time resolution failure} inside the quantum-jump algorithm. The solver must identify the exact time at which the norm reaches a randomly chosen threshold, and for the large-particle runs this search can fail within the default tolerance settings.
+
+Thus, the issue is not that Monte Carlo is conceptually inapplicable, but that in this regime its numerical realization becomes difficult to stabilize. This is an important computational limitation to record in the thesis when discussing the scalability and robustness of the method.
+
+\end{document}

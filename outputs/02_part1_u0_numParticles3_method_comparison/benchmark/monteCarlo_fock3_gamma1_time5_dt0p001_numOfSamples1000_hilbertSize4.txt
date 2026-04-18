@@ -1,0 +1,22 @@
+Method: monteCarlo
+- initial_state_type = fock
+- num_of_particles = 3.0
+- gamma = 1.0
+- time = 5.0
+- dt = 0.001
+- num_of_samples = 1000
+- interaction_strength = 0.0
+- seed = 0
+- hilbert_size = 4
+- backend used = cpu
+- setup_runtime_seconds = 0.000225
+- solve_runtime_seconds = 133.842070
+- postprocess_runtime_seconds = 0.001163
+- total_runtime_seconds = 133.843461
+- solver_peak_python_memory = 2.267 MiB
+- peak_process_memory = 155.938 MiB
+- output points = 5001
+- CSV size = 371.203 KiB
+- CSV path = C:\Users\PREDATOR NEO 16\Desktop\Final Thesis Code\outputs\02_part1_u0_numParticles3_method_comparison\csv\monteCarlo_fock3_gamma1_time5_dt0p001_numOfSamples1000_hilbertSize4.csv
+- fast_path_used = False
+- notes = interaction_strength = 0, but Monte Carlo was still run as a true trajectory-based dissipation method. Trajectory averaging remains relevant here for method comparison. QuTiP handles the trajectory loop internally, and this path is CPU-based.

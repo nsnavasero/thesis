@@ -1,16 +1,15 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import secrets
 from time import perf_counter
-from typing import Literal
 
 import numpy as np
+import tracemalloc
 
-from .exact_method import _get_array_module, _validate_initial_state
+from .exact_method import _validate_initial_state
 from .io_utils import save_method_output_csv
 
-
-ArrayBackend = Literal["cpu", "gpu"]
 
 ALPHA_INDEX = 0
 ALPHA_PLUS_INDEX = 1
@@ -26,8 +25,13 @@ class PositivePMethodResult:
     total_time: float
     dt: float
     num_of_samples: int
-    backend: ArrayBackend
-    runtime_seconds: float
+    backend: str
+    seed: int | None
+    setup_runtime_seconds: float
+    solve_runtime_seconds: float
+    postprocess_runtime_seconds: float
+    total_runtime_seconds: float
+    solver_peak_python_memory_mib: float | None
     fast_path_used: bool
     notes: str
     time_values: np.ndarray
@@ -118,11 +122,13 @@ def _compute_u0_positive_p_observables(
     alpha0 = initial_state[:, 0, ALPHA_INDEX]
     alpha_plus0 = initial_state[:, 0, ALPHA_PLUS_INDEX]
     decay = xp.exp(-0.5 * gamma * time_values_backend)
-    occupation_samples = (alpha0[:, None] * alpha_plus0[:, None]) * (decay[None, :] ** 2)
-    second_moment_samples = occupation_samples**2
+    occupation0 = alpha0 * alpha_plus0
+    mean_occupation0 = xp.mean(occupation0)
+    mean_occupation0_sq = xp.mean(occupation0**2)
+    decay_sq = decay**2
 
-    mean_particle_number_complex = xp.mean(occupation_samples, axis=0)
-    second_moment_complex = xp.mean(second_moment_samples, axis=0)
+    mean_particle_number_complex = mean_occupation0 * decay_sq
+    second_moment_complex = mean_occupation0_sq * (decay_sq**2)
     variance_complex = second_moment_complex + mean_particle_number_complex - mean_particle_number_complex**2
     return (
         mean_particle_number_complex,
@@ -154,8 +160,7 @@ def _simulate_positive_p_interacting_single_site(
     - axis 1 = time index
 
     That means we only loop over time steps in Python and update every sample
-    at once, which is much faster than a Python loop over samples and is also
-    compatible with `cupy` GPU arrays.
+    at once, which is much faster than a Python loop over samples.
 
     Interaction convention in this template:
     - alpha and alphaPlus are treated as independent Positive-P variables
@@ -175,8 +180,12 @@ def _simulate_positive_p_interacting_single_site(
     alpha_plus = initial_state[:, 0, ALPHA_PLUS_INDEX].copy()
 
     num_times = int(time_values_backend.shape[0])
-    occupation_samples = xp.empty((num_of_samples, num_times), dtype=xp.complex128)
-    occupation_samples[:, 0] = alpha * alpha_plus
+    mean_particle_number_complex = xp.empty(num_times, dtype=xp.complex128)
+    second_moment_complex = xp.empty(num_times, dtype=xp.complex128)
+
+    occupation = alpha * alpha_plus
+    mean_particle_number_complex[0] = xp.mean(occupation)
+    second_moment_complex[0] = xp.mean(occupation**2)
 
     sqrt_minus_i_u = xp.sqrt(-1j * interaction_strength)
     sqrt_plus_i_u = xp.sqrt(1j * interaction_strength)
@@ -192,11 +201,10 @@ def _simulate_positive_p_interacting_single_site(
         alpha = alpha + drift_alpha * dt + sqrt_minus_i_u * alpha * noise_1
         alpha_plus = alpha_plus + drift_alpha_plus * dt + sqrt_plus_i_u * alpha_plus * noise_2
 
-        occupation_samples[:, time_index] = alpha * alpha_plus
+        occupation = alpha * alpha_plus
+        mean_particle_number_complex[time_index] = xp.mean(occupation)
+        second_moment_complex[time_index] = xp.mean(occupation**2)
 
-    second_moment_samples = occupation_samples**2
-    mean_particle_number_complex = xp.mean(occupation_samples, axis=0)
-    second_moment_complex = xp.mean(second_moment_samples, axis=0)
     variance_complex = second_moment_complex + mean_particle_number_complex - mean_particle_number_complex**2
     return mean_particle_number_complex, variance_complex, second_moment_complex
 
@@ -210,7 +218,6 @@ def simulate_positive_p_method(
     time: float,
     dt: float,
     num_of_samples: int,
-    prefer_gpu: bool = True,
     seed: int | None = None,
 ):
     initial_state_type = _validate_initial_state(initial_state_type)
@@ -226,16 +233,20 @@ def simulate_positive_p_method(
     if initial_state_type == "fock" and not float(num_of_particles).is_integer():
         raise ValueError("For a fock state, num_of_particles should be an integer.")
 
-    xp, backend = _get_array_module(prefer_gpu=prefer_gpu)
+    if seed is None:
+        seed = secrets.randbits(63)
 
-    if backend == "gpu":
-        rng = xp.random.default_rng(seed)
-    else:
-        rng = np.random.default_rng(seed)
+    xp = np
+    rng = np.random.default_rng(seed)
 
-    start = perf_counter()
+    total_start = perf_counter()
 
+    setup_start = perf_counter()
     time_values_backend = xp.arange(0.0, time + dt, dt, dtype=xp.float64)
+    setup_runtime_seconds = perf_counter() - setup_start
+
+    tracemalloc.start()
+    solve_start = perf_counter()
     if interaction_strength == 0.0:
         (
             mean_particle_number_complex,
@@ -286,25 +297,21 @@ def simulate_positive_p_method(
             "interaction_strength != 0, so the vectorized stochastic Positive-P template was used. "
             "Trajectories were batched across samples for speed."
         )
+    _, solver_peak_bytes = tracemalloc.get_traced_memory()
+    tracemalloc.stop()
+    solve_runtime_seconds = perf_counter() - solve_start
 
-    if backend == "gpu":
-        time_values = xp.asnumpy(time_values_backend)
-        mean_particle_number_complex = xp.asnumpy(mean_particle_number_complex)
-        second_moment_complex = xp.asnumpy(second_moment_complex)
-        variance_complex = xp.asnumpy(variance_complex)
-        mean_particle_number_imag = xp.asnumpy(mean_particle_number_imag)
-        variance_imag = xp.asnumpy(variance_imag)
-        second_moment_imag = xp.asnumpy(second_moment_imag)
-    else:
-        time_values = np.asarray(time_values_backend)
-        mean_particle_number_complex = np.asarray(mean_particle_number_complex)
-        second_moment_complex = np.asarray(second_moment_complex)
-        variance_complex = np.asarray(variance_complex)
-        mean_particle_number_imag = np.asarray(mean_particle_number_imag)
-        variance_imag = np.asarray(variance_imag)
-        second_moment_imag = np.asarray(second_moment_imag)
+    postprocess_start = perf_counter()
+    time_values = np.asarray(time_values_backend)
+    mean_particle_number_complex = np.asarray(mean_particle_number_complex)
+    second_moment_complex = np.asarray(second_moment_complex)
+    variance_complex = np.asarray(variance_complex)
+    mean_particle_number_imag = np.asarray(mean_particle_number_imag)
+    variance_imag = np.asarray(variance_imag)
+    second_moment_imag = np.asarray(second_moment_imag)
+    postprocess_runtime_seconds = perf_counter() - postprocess_start
 
-    runtime_seconds = perf_counter() - start
+    total_runtime_seconds = perf_counter() - total_start
     return PositivePMethodResult(
         method_name="positiveP",
         initial_state_type=initial_state_type,
@@ -314,8 +321,13 @@ def simulate_positive_p_method(
         total_time=time,
         dt=dt,
         num_of_samples=num_of_samples,
-        backend=backend,
-        runtime_seconds=runtime_seconds,
+        backend="cpu",
+        seed=seed,
+        setup_runtime_seconds=setup_runtime_seconds,
+        solve_runtime_seconds=solve_runtime_seconds,
+        postprocess_runtime_seconds=postprocess_runtime_seconds,
+        total_runtime_seconds=total_runtime_seconds,
+        solver_peak_python_memory_mib=solver_peak_bytes / (1024 * 1024),
         fast_path_used=fast_path_used,
         notes=notes,
         time_values=time_values,
@@ -338,7 +350,6 @@ def run_positive_p_and_save(
     time: float,
     dt: float,
     num_of_samples: int,
-    prefer_gpu: bool = True,
     seed: int | None = None,
 ):
     result = simulate_positive_p_method(
@@ -349,7 +360,6 @@ def run_positive_p_and_save(
         time=time,
         dt=dt,
         num_of_samples=num_of_samples,
-        prefer_gpu=prefer_gpu,
         seed=seed,
     )
     output_path = save_method_output_csv(
@@ -361,6 +371,7 @@ def run_positive_p_and_save(
         time=result.total_time,
         dt=result.dt,
         num_of_samples=result.num_of_samples,
+        seed=result.seed,
         time_values=result.time_values,
         mean_values=result.mean_particle_number,
         variance_values=result.variance,

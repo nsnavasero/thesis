@@ -1,0 +1,21 @@
+Method: positiveP
+- initial_state_type = fock
+- num_of_particles = 100.0
+- gamma = 1.0
+- time = 5.0
+- dt = 0.001
+- num_of_samples = 1000
+- interaction_strength = 0.0
+- seed = 0
+- backend used = cpu
+- setup_runtime_seconds = 0.000009
+- solve_runtime_seconds = 0.052889
+- postprocess_runtime_seconds = 0.000002
+- total_runtime_seconds = 0.052904
+- solver_peak_python_memory = 153.072 MiB
+- peak_process_memory = 315.754 MiB
+- output points = 5001
+- CSV size = 371.203 KiB
+- CSV path = C:\Users\PREDATOR NEO 16\Desktop\Final Thesis Code\outputs\03_part1_u0_numParticles100_method_comparison\csv\positiveP_fock100_gamma1_time5_dt0p001_numOfSamples1000.csv
+- fast_path_used = False
+- notes = interaction_strength = 0, so the time evolution is deterministic, but the Fock-state Positive-P initial representation was still sampled across num_of_samples trajectories.

@@ -5,6 +5,7 @@ from math import sqrt
 from time import perf_counter
 
 import numpy as np
+import tracemalloc
 
 from .config import resolve_hilbert_size
 from .exact_method import _validate_initial_state
@@ -21,7 +22,12 @@ class DensityMatrixMethodResult:
     dt: float
     num_of_samples: int
     backend: str
-    runtime_seconds: float
+    seed: int | None
+    setup_runtime_seconds: float
+    solve_runtime_seconds: float
+    postprocess_runtime_seconds: float
+    total_runtime_seconds: float
+    solver_peak_python_memory_mib: float | None
     hilbert_size: int
     coherent_alpha: complex | None
     time_values: np.ndarray
@@ -70,8 +76,9 @@ def simulate_density_matrix_method(
         hilbert_size=hilbert_size,
     )
 
-    start = perf_counter()
+    total_start = perf_counter()
 
+    setup_start = perf_counter()
     time_values = np.arange(0.0, time + dt, dt, dtype=float)
     a = qt.destroy(hilbert_size)
     n_op = a.dag() * a
@@ -83,14 +90,22 @@ def simulate_density_matrix_method(
         hilbert_size=hilbert_size,
         num_of_particles=num_of_particles,
     )
+    setup_runtime_seconds = perf_counter() - setup_start
 
+    tracemalloc.start()
+    solve_start = perf_counter()
     result = qt.mesolve(hamiltonian, rho0, time_values, collapse_operators, [n_op, n_sq_op])
+    _, solver_peak_bytes = tracemalloc.get_traced_memory()
+    tracemalloc.stop()
+    solve_runtime_seconds = perf_counter() - solve_start
 
+    postprocess_start = perf_counter()
     mean_particle_number = np.real_if_close(np.asarray(result.expect[0], dtype=np.complex128)).astype(float)
     n_sq_values = np.real_if_close(np.asarray(result.expect[1], dtype=np.complex128)).astype(float)
     variance = np.maximum(n_sq_values - mean_particle_number**2, 0.0)
+    postprocess_runtime_seconds = perf_counter() - postprocess_start
 
-    runtime_seconds = perf_counter() - start
+    total_runtime_seconds = perf_counter() - total_start
     return DensityMatrixMethodResult(
         method_name="densityMatrix",
         initial_state_type=initial_state_type,
@@ -100,7 +115,12 @@ def simulate_density_matrix_method(
         dt=dt,
         num_of_samples=num_of_samples,
         backend="cpu",
-        runtime_seconds=runtime_seconds,
+        seed=None,
+        setup_runtime_seconds=setup_runtime_seconds,
+        solve_runtime_seconds=solve_runtime_seconds,
+        postprocess_runtime_seconds=postprocess_runtime_seconds,
+        total_runtime_seconds=total_runtime_seconds,
+        solver_peak_python_memory_mib=solver_peak_bytes / (1024 * 1024),
         hilbert_size=hilbert_size,
         coherent_alpha=coherent_alpha,
         time_values=time_values,
@@ -139,6 +159,7 @@ def run_density_matrix_and_save(
         dt=result.dt,
         num_of_samples=result.num_of_samples,
         hilbert_size=result.hilbert_size,
+        seed=result.seed,
         time_values=result.time_values,
         mean_values=result.mean_particle_number,
         variance_values=result.variance,

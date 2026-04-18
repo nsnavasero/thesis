@@ -13,6 +13,10 @@ def _sanitize_number(value: float | int) -> str:
     return f"{numeric_value:.15g}".replace(".", "p")
 
 
+def build_state_label(initial_state_type: str, num_of_particles: float) -> str:
+    return f"{initial_state_type}{_sanitize_number(num_of_particles)}"
+
+
 def build_output_stem(
     method_name: str,
     initial_state_type: str,
@@ -22,11 +26,11 @@ def build_output_stem(
     dt: float,
     num_of_samples: int,
     hilbert_size: int | None = None,
+    seed: int | None = None,
 ) -> str:
     parts = [
         method_name,
-        initial_state_type,
-        f"numOfParticles{_sanitize_number(num_of_particles)}",
+        build_state_label(initial_state_type, num_of_particles),
         f"gamma{_sanitize_number(gamma)}",
         f"time{_sanitize_number(time)}",
         f"dt{_sanitize_number(dt)}",
@@ -48,6 +52,7 @@ def save_method_output_csv(
     dt: float,
     num_of_samples: int,
     hilbert_size: int | None = None,
+    seed: int | None = None,
     time_values: Iterable[float],
     mean_values: Iterable[float],
     variance_values: Iterable[float],
@@ -64,6 +69,7 @@ def save_method_output_csv(
         dt=dt,
         num_of_samples=num_of_samples,
         hilbert_size=hilbert_size,
+        seed=seed,
     )
     output_path = output_dir / f"{stem}.csv"
 

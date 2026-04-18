@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import secrets
 from time import perf_counter
 
 import numpy as np
+import tracemalloc
 
 from .config import resolve_hilbert_size
 from .exact_method import _validate_initial_state
@@ -21,7 +23,12 @@ class MonteCarloMethodResult:
     dt: float
     num_of_samples: int
     backend: str
-    runtime_seconds: float
+    seed: int | None
+    setup_runtime_seconds: float
+    solve_runtime_seconds: float
+    postprocess_runtime_seconds: float
+    total_runtime_seconds: float
+    solver_peak_python_memory_mib: float | None
     fast_path_used: bool
     notes: str
     hilbert_size: int
@@ -78,9 +85,13 @@ def simulate_monte_carlo_method(
     )
 
     time_values = np.arange(0.0, time + dt, dt, dtype=float)
-    coherent_alpha = None if initial_state_type == "fock" else np.sqrt(num_of_particles)
-    start = perf_counter()
+    if seed is None:
+        seed = secrets.randbits(63)
 
+    coherent_alpha = None if initial_state_type == "fock" else np.sqrt(num_of_particles)
+    total_start = perf_counter()
+
+    setup_start = perf_counter()
     a = qt.destroy(hilbert_size)
     n_op = a.dag() * a
     n_sq_op = n_op * n_op
@@ -97,7 +108,10 @@ def simulate_monte_carlo_method(
     # still matters for Fock states, and keeping the sampled solver path helps
     # expose the method's convergence limitations in comparisons.
     options = {"progress_bar": False}
+    setup_runtime_seconds = perf_counter() - setup_start
 
+    tracemalloc.start()
+    solve_start = perf_counter()
     result = qt.mcsolve(
         hamiltonian,
         psi0,
@@ -105,12 +119,18 @@ def simulate_monte_carlo_method(
         collapse_operators,
         [n_op, n_sq_op],
         ntraj=num_of_samples,
+        seeds=seed,
         options=options,
     )
+    _, solver_peak_bytes = tracemalloc.get_traced_memory()
+    tracemalloc.stop()
+    solve_runtime_seconds = perf_counter() - solve_start
 
+    postprocess_start = perf_counter()
     mean_particle_number = np.real_if_close(np.asarray(result.expect[0], dtype=np.complex128)).astype(float)
     n_sq_values = np.real_if_close(np.asarray(result.expect[1], dtype=np.complex128)).astype(float)
     variance = np.maximum(n_sq_values - mean_particle_number**2, 0.0)
+    postprocess_runtime_seconds = perf_counter() - postprocess_start
 
     fast_path_used = False
     if interaction_strength == 0.0:
@@ -126,7 +146,7 @@ def simulate_monte_carlo_method(
             "is still CPU-based."
         )
 
-    runtime_seconds = perf_counter() - start
+    total_runtime_seconds = perf_counter() - total_start
     return MonteCarloMethodResult(
         method_name="monteCarlo",
         initial_state_type=initial_state_type,
@@ -137,7 +157,12 @@ def simulate_monte_carlo_method(
         dt=dt,
         num_of_samples=num_of_samples,
         backend="cpu",
-        runtime_seconds=runtime_seconds,
+        seed=seed,
+        setup_runtime_seconds=setup_runtime_seconds,
+        solve_runtime_seconds=solve_runtime_seconds,
+        postprocess_runtime_seconds=postprocess_runtime_seconds,
+        total_runtime_seconds=total_runtime_seconds,
+        solver_peak_python_memory_mib=solver_peak_bytes / (1024 * 1024),
         fast_path_used=fast_path_used,
         notes=notes,
         hilbert_size=hilbert_size,
@@ -182,6 +207,7 @@ def run_monte_carlo_and_save(
         dt=result.dt,
         num_of_samples=result.num_of_samples,
         hilbert_size=result.hilbert_size,
+        seed=result.seed,
         time_values=result.time_values,
         mean_values=result.mean_particle_number,
         variance_values=result.variance,
