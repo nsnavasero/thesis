@@ -1,0 +1,171 @@
+Completed bundles:
+- 01_part1_u0_numParticles1_method_comparison (U=0.0, num_particles=1.0)
+- 02_part1_u0_numParticles10_method_comparison (U=0.0, num_particles=10.0)
+- 03_part1_u0_numParticles100_method_comparison (U=0.0, num_particles=100.0)
+- 05_part1_u1_numParticles1_method_comparison (U=1.0, num_particles=1.0)
+- 06_part1_u1_numParticles10_method_comparison (U=1.0, num_particles=10.0)
+- 07_part1_u1_numParticles100_method_comparison (U=1.0, num_particles=100.0)
+
+Failures:
+- 04_part1_u0_numParticles1000_method_comparison (U=0.0, num_particles=1000.0)
+  error: RuntimeError("Could not find the collapse time within desired tolerance. Increase accuracy of the ODE solver or lower the tolerance with the options 'norm_steps', 'norm_tol', 'norm_t_tol'.")
+Traceback (most recent call last):
+  File "<stdin>", line 46, in <module>
+  File "C:\Users\PREDATOR NEO 16\Desktop\Final Thesis Code\src\bosonic_dissipation\part1_runner.py", line 168, in generate_csvs_and_benchmarks
+    (result, output_path), peak_process_memory_mib = measure_peak_process_memory_for_call(
+                                                     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        run_method,
+        ^^^^^^^^^^^
+    ...<2 lines>...
+        csv_dir=csv_dir,
+        ^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\PREDATOR NEO 16\Desktop\Final Thesis Code\src\bosonic_dissipation\part1_runner.py", line 141, in measure_peak_process_memory_for_call
+    result = func(*args, **kwargs)
+  File "C:\Users\PREDATOR NEO 16\Desktop\Final Thesis Code\src\bosonic_dissipation\part1_runner.py", line 120, in run_method
+    return run_monte_carlo_and_save(csv_dir, **kwargs)
+  File "C:\Users\PREDATOR NEO 16\Desktop\Final Thesis Code\src\bosonic_dissipation\monte_carlo_method.py", line 197, in run_monte_carlo_and_save
+    result = simulate_monte_carlo_method(
+        initial_state_type=initial_state_type,
+    ...<7 lines>...
+        seed=seed,
+    )
+  File "C:\Users\PREDATOR NEO 16\Desktop\Final Thesis Code\src\bosonic_dissipation\monte_carlo_method.py", line 118, in simulate_monte_carlo_method
+    result = qt.mcsolve(
+        hamiltonian,
+    ...<6 lines>...
+        options=options,
+    )
+  File "C:\Users\PREDATOR NEO 16\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\qutip\solver\mcsolve.py", line 203, in mcsolve
+    result = mc.run(state, tlist=tlist, ntraj=ntraj, e_ops=e_ops,
+                    seeds=seeds, target_tol=target_tol, timeout=timeout)
+  File "C:\Users\PREDATOR NEO 16\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\qutip\solver\mcsolve.py", line 699, in run
+    return super().run(
+           ~~~~~~~~~~~^
+        state, tlist, ntraj, args=args, e_ops=e_ops,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        target_tol=target_tol, timeout=timeout, seeds=seeds)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\PREDATOR NEO 16\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\qutip\solver\multitraj.py", line 250, in run
+    map_func(
+    ~~~~~~~~^
+        self._run_one_traj, seeds,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<3 lines>...
+        progress_bar_kwargs=self.options["progress_kwargs"]
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\PREDATOR NEO 16\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\qutip\solver\parallel.py", line 117, in serial_map
+    raise err
+  File "C:\Users\PREDATOR NEO 16\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\qutip\solver\parallel.py", line 114, in serial_map
+    result = task(value, *task_args, **task_kwargs)
+  File "C:\Users\PREDATOR NEO 16\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\qutip\solver\mcsolve.py", line 568, in _run_one_traj
+    seed, result, weight = super()._run_one_traj(
+                           ~~~~~~~~~~~~~~~~~~~~~^
+        seed, state, tlist, e_ops, **integrator_kwargs
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\PREDATOR NEO 16\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\qutip\solver\multitraj.py", line 278, in _run_one_traj
+    return *self._integrate_one_traj(seed, tlist, result), 1
+            ~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\PREDATOR NEO 16\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\qutip\solver\multitraj.py", line 281, in _integrate_one_traj
+    for t, state in self._integrator.run(tlist):
+                    ~~~~~~~~~~~~~~~~~~~~^^^^^^^
+  File "C:\Users\PREDATOR NEO 16\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\qutip\solver\mcsolve.py", line 314, in run
+    yield self.integrate(t, False)
+          ~~~~~~~~~~~~~~^^^^^^^^^^
+  File "C:\Users\PREDATOR NEO 16\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\qutip\solver\mcsolve.py", line 301, in integrate
+    t_col, state = self._find_collapse_time(norm_old, norm,
+                   ~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+                                            t_old, t_step)
+                                            ^^^^^^^^^^^^^^
+  File "C:\Users\PREDATOR NEO 16\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\qutip\solver\mcsolve.py", line 372, in _find_collapse_time
+    raise RuntimeError(
+    ...<2 lines>...
+        "with the options 'norm_steps', 'norm_tol', 'norm_t_tol'.")
+RuntimeError: Could not find the collapse time within desired tolerance. Increase accuracy of the ODE solver or lower the tolerance with the options 'norm_steps', 'norm_tol', 'norm_t_tol'.
+
+- 08_part1_u1_numParticles1000_method_comparison (U=1.0, num_particles=1000.0)
+  error: RuntimeError("Could not find the collapse time within desired tolerance. Increase accuracy of the ODE solver or lower the tolerance with the options 'norm_steps', 'norm_tol', 'norm_t_tol'.")
+Traceback (most recent call last):
+  File "<stdin>", line 46, in <module>
+  File "C:\Users\PREDATOR NEO 16\Desktop\Final Thesis Code\src\bosonic_dissipation\part1_runner.py", line 168, in generate_csvs_and_benchmarks
+    (result, output_path), peak_process_memory_mib = measure_peak_process_memory_for_call(
+                                                     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        run_method,
+        ^^^^^^^^^^^
+    ...<2 lines>...
+        csv_dir=csv_dir,
+        ^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\PREDATOR NEO 16\Desktop\Final Thesis Code\src\bosonic_dissipation\part1_runner.py", line 141, in measure_peak_process_memory_for_call
+    result = func(*args, **kwargs)
+  File "C:\Users\PREDATOR NEO 16\Desktop\Final Thesis Code\src\bosonic_dissipation\part1_runner.py", line 120, in run_method
+    return run_monte_carlo_and_save(csv_dir, **kwargs)
+  File "C:\Users\PREDATOR NEO 16\Desktop\Final Thesis Code\src\bosonic_dissipation\monte_carlo_method.py", line 197, in run_monte_carlo_and_save
+    result = simulate_monte_carlo_method(
+        initial_state_type=initial_state_type,
+    ...<7 lines>...
+        seed=seed,
+    )
+  File "C:\Users\PREDATOR NEO 16\Desktop\Final Thesis Code\src\bosonic_dissipation\monte_carlo_method.py", line 118, in simulate_monte_carlo_method
+    result = qt.mcsolve(
+        hamiltonian,
+    ...<6 lines>...
+        options=options,
+    )
+  File "C:\Users\PREDATOR NEO 16\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\qutip\solver\mcsolve.py", line 203, in mcsolve
+    result = mc.run(state, tlist=tlist, ntraj=ntraj, e_ops=e_ops,
+                    seeds=seeds, target_tol=target_tol, timeout=timeout)
+  File "C:\Users\PREDATOR NEO 16\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\qutip\solver\mcsolve.py", line 699, in run
+    return super().run(
+           ~~~~~~~~~~~^
+        state, tlist, ntraj, args=args, e_ops=e_ops,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        target_tol=target_tol, timeout=timeout, seeds=seeds)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\PREDATOR NEO 16\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\qutip\solver\multitraj.py", line 250, in run
+    map_func(
+    ~~~~~~~~^
+        self._run_one_traj, seeds,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<3 lines>...
+        progress_bar_kwargs=self.options["progress_kwargs"]
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\PREDATOR NEO 16\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\qutip\solver\parallel.py", line 117, in serial_map
+    raise err
+  File "C:\Users\PREDATOR NEO 16\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\qutip\solver\parallel.py", line 114, in serial_map
+    result = task(value, *task_args, **task_kwargs)
+  File "C:\Users\PREDATOR NEO 16\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\qutip\solver\mcsolve.py", line 568, in _run_one_traj
+    seed, result, weight = super()._run_one_traj(
+                           ~~~~~~~~~~~~~~~~~~~~~^
+        seed, state, tlist, e_ops, **integrator_kwargs
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\PREDATOR NEO 16\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\qutip\solver\multitraj.py", line 278, in _run_one_traj
+    return *self._integrate_one_traj(seed, tlist, result), 1
+            ~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\PREDATOR NEO 16\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\qutip\solver\multitraj.py", line 281, in _integrate_one_traj
+    for t, state in self._integrator.run(tlist):
+                    ~~~~~~~~~~~~~~~~~~~~^^^^^^^
+  File "C:\Users\PREDATOR NEO 16\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\qutip\solver\mcsolve.py", line 314, in run
+    yield self.integrate(t, False)
+          ~~~~~~~~~~~~~~^^^^^^^^^^
+  File "C:\Users\PREDATOR NEO 16\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\qutip\solver\mcsolve.py", line 301, in integrate
+    t_col, state = self._find_collapse_time(norm_old, norm,
+                   ~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+                                            t_old, t_step)
+                                            ^^^^^^^^^^^^^^
+  File "C:\Users\PREDATOR NEO 16\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\qutip\solver\mcsolve.py", line 372, in _find_collapse_time
+    raise RuntimeError(
+    ...<2 lines>...
+        "with the options 'norm_steps', 'norm_tol', 'norm_t_tol'.")
+RuntimeError: Could not find the collapse time within desired tolerance. Increase accuracy of the ODE solver or lower the tolerance with the options 'norm_steps', 'norm_tol', 'norm_t_tol'.
+

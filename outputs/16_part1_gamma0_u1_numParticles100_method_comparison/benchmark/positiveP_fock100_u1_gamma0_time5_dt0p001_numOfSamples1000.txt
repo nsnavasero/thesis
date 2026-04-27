@@ -1,0 +1,21 @@
+Method: positiveP
+- initial_state_type = fock
+- num_of_particles = 100.0
+- gamma = 0.0
+- time = 5.0
+- dt = 0.001
+- num_of_samples = 1000
+- interaction_strength = 1.0
+- seed = 0
+- backend used = cpu
+- setup_runtime_seconds = 0.000018
+- solve_runtime_seconds = 1.586083
+- postprocess_runtime_seconds = 0.001912
+- total_runtime_seconds = 1.588018
+- solver_peak_python_memory = 0.583 MiB
+- peak_process_memory = 319.445 MiB
+- output points = 5001
+- CSV size = 329.510 KiB
+- CSV path = C:\Users\PREDATOR NEO 16\Desktop\Final Thesis Code\outputs\16_part1_gamma0_u1_numParticles100_method_comparison\csv\positiveP_fock100_u1_gamma0_time5_dt0p001_numOfSamples1000.csv
+- fast_path_used = False
+- notes = interaction_strength != 0, so the vectorized stochastic Positive-P solver was used. Trajectories were batched across samples for speed.

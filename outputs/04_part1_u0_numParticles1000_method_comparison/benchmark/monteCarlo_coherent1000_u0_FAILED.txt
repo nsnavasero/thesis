@@ -1,0 +1,1 @@
+Could not find the collapse time within desired tolerance. Increase accuracy of the ODE solver or lower the tolerance with the options 'norm_steps', 'norm_tol', 'norm_t_tol'.

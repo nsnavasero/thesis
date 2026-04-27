@@ -1,0 +1,89 @@
+% !TEX root =  main.tex
+\chapter{Single Site Dissipation}
+
+In this chapter, we will present the main numerical results of our work, which is the benchmarking of the numerical methods discussed in the previous chapter against the exact results for an open bosonic system with a single site. The dissipation rate used in the following is $\gamma=1$. We will primarily examine the time evolution of the mean and variance of the site's particle number.
+
+
+\section{Initial Fock state}
+\hspace{\parindent} In Fig. 3.1, we show that the time evolution of the mean particle number for each method follow the exponential decay of the exact results. Same can be said for the time evolution of the variance as shown in Fig.~\ref{fig:fockVariance}, although it is more obvious that the results for positive-P results in that case slightly deviate from exact results close to the start of the simulation.
+
+\begin{figure}[h]
+  \centering
+  \includesvg[width=0.8\columnwidth]{figures/01/fock1_mean_gamma1_time5_dt0p001.svg}\\
+  \caption{
+  The time evolution of the mean particle number of an initial Fock state $\ket{n=1}$ with $\gamma=1$. The Hilbert space used for Density Matrix and Monte Carlo has a dimension of 2. Number of samples used for Monte Carlo and positive-P are 1000. All methods have overlapping graphs, suggesting that all their results agree with each other.
+  }\label{fig:fockMean}
+\end{figure}
+\begin{figure}[h]
+  \centering
+  \includesvg[width=0.8\columnwidth]{figures/01/fock1_variance_gamma1_time5_dt0p001.svg}\\
+  \caption{
+  The time evolution of the variance of an initial Fock state $\ket{n=1}$ with $\gamma=1$. The Hilbert space used for Density Matrix and Monte Carlo has a dimension of 2. Number of samples used for Monte Carlo and positive-P are 1000. All methods have overlapping graphs, except that of Positive-P.
+  }\label{fig:fockVariance}
+\end{figure}
+
+\hspace{\parindent} A closer look of the subtle differences of the mean and variance are seen in Fig.~\ref{fig:fockDifference}. As expected, the density matrix method is exactly the same as the closed-form solution since in this system, we simply numerically integrate coupled differential equations. The Monte Carlo method has a lot of noise, but stays within a reasonable amount near the exact values. The positive-P method starts out a bit different from the exact values then becomes more accurate as the particle decays to zero. Since $U=0$, there is no noise for the time evolution of positive-P. Only its sampling method for the Fock state is stochastic, so only the very first time step is affected by noise. This is the reason why the positive-P method exhibits slight deviation at the beginning. Increasing sample trajectories should keep both Monte Carlo and positive-P closer to the exact results.
+
+\begin{figure}[h]
+  \centering
+  \begin{subfigure}{0.48\columnwidth}
+    \centering
+    \includesvg[width=\linewidth]{figures/01/fock1_meanDifference_gamma1_time5_dt0p001.svg}
+    \caption{Mean difference}
+    \label{fig:fockMeanDifference}
+  \end{subfigure}
+  \hfill
+  \begin{subfigure}{0.48\columnwidth}
+    \centering
+    \includesvg[width=\linewidth]{figures/01/fock1_varDifference_gamma1_time5_dt0p001.svg}
+    \caption{Variance difference}
+    \label{fig:fockVarDifference}
+  \end{subfigure}
+  \caption{
+  The differences in mean and variance for each method compared to the exact formulas for a given Fock state $\ket{n=1}$. The Hilbert space used for Density Matrix and Monte Carlo has a dimension of 2. Number of samples used for Monte Carlo and positive-P are 1000. 
+  }
+  \label{fig:fockDifference}
+\end{figure}
+
+
+
+\section{Initial coherent state}
+\hspace{\parindent} Similar to the analysis done in the previous subsection, we also find good agreement between the different methods for an initial coherent state, as shown in Fig~\ref{fig:coherentMean} and Fig~\ref{fig:coherentVariance}. However, there is quite less error here compared to the results for an initial Fock state, as shown in Fig~\ref{fig:coherentDifference}. The order of magnitude of the error here is only $10^-4$, which is significantly smaller than the error of $10^-2$ in Fig.~\ref{fig:fockDifference} where the magnitude of the error is in $10^{-2}$. Notably, we only need one trajectory for the positive-P method for an initial coherent state as noise is absent for $U=0$. Since the initialized quantum state is a coherent state, there was also no need to sample the initial state multiple times.
+
+\hspace{\parindent}A key takeaway for the Monte Carlo method is that a coherent state initialization is computationally more resource-heavy because of the larger Hilbert space size, despite having the same initial particle number with the Fock state from earlier. However, in a system with purely dissipation, the error is much less varied. Noise is still apparent for the Monte Carlo method but it is significantly in smaller scale than that from Fock state initialization ($10^{-4}$ compared to $10^{-2}$).
+
+
+\begin{figure}[h]
+  \centering
+  \includesvg[width=0.8\columnwidth]{figures/01/coherent1_mean_gamma1_time5_dt0p001.svg}\\
+  \caption{
+  The time evolution of the mean particle number of an initial coherent state $\ket{\alpha=1}$ with $\gamma=1$. The Hilbert space used for Density Matrix and Monte Carlo has a dimension of 6. Number of samples used for Monte Carlo is 1000. All methods have overlapping graphs, suggesting that all their results agree with each other.
+  }\label{fig:coherentMean}
+\end{figure}
+\begin{figure}[h]
+  \centering
+  \includesvg[width=0.8\columnwidth]{figures/01/coherent1_variance_gamma1_time5_dt0p001.svg}\\
+  \caption{
+  The time evolution of the variance of an initial coherent state $\ket{\alpha=1}$ with $\gamma=1$. The Hilbert space used for Density Matrix and Monte Carlo has a dimension of 2. Number of samples used for Monte Carlo is 1000. All methods have nearly overlapping graphs, with only small deviations visible for the stochastic methods.
+  }\label{fig:coherentVariance}
+\end{figure}
+\begin{figure}[h]
+  \centering
+  \begin{subfigure}{0.48\columnwidth}
+    \centering
+    \includesvg[width=\linewidth]{figures/01/coherent1_meanDifference_gamma1_time5_dt0p001.svg}
+    \caption{Mean difference}
+    \label{fig:coherentMeanDifference}
+  \end{subfigure}
+  \hfill
+  \begin{subfigure}{0.48\columnwidth}
+    \centering
+    \includesvg[width=\linewidth]{figures/01/coherent1_varDifference_gamma1_time5_dt0p001.svg}
+    \caption{Variance difference}
+    \label{fig:coherentVarDifference}
+  \end{subfigure}
+  \caption{
+  The differences in mean and variance for each method compared to the exact formulas for an initial coherent state $\ket{\alpha=1}$. The Hilbert space used for Density Matrix and Monte Carlo has a dimension of 2. Number of samples used for Monte Carlo and positive-P are 1000.
+  }
+  \label{fig:coherentDifference}
+\end{figure}

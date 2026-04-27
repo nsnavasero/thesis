@@ -1,0 +1,23 @@
+Method: monteCarlo
+- initial_state_type = coherent
+- num_of_particles = 10.0
+- gamma = 0.0
+- time = 5.0
+- dt = 0.001
+- num_of_samples = 1000
+- interaction_strength = 1.0
+- seed = 0
+- hilbert_size = 20
+- coherent_alpha = 3.1622776601683795
+- backend used = cpu
+- setup_runtime_seconds = 0.000673
+- solve_runtime_seconds = 158.383234
+- postprocess_runtime_seconds = 0.002633
+- total_runtime_seconds = 158.386543
+- solver_peak_python_memory = 2.672 MiB
+- peak_process_memory = 340.828 MiB
+- output points = 5001
+- CSV size = 986.936 KiB
+- CSV path = C:\Users\PREDATOR NEO 16\Desktop\Final Thesis Code\outputs\15_part1_gamma0_u1_numParticles10_method_comparison\csv\monteCarlo_coherent10_u1_gamma0_time5_dt0p001_numOfSamples1000_hilbertSize20.csv
+- fast_path_used = False
+- notes = interaction_strength != 0, so the interacting Monte Carlo template was used through QuTiP mcsolve. Trajectory averaging matters in this path. QuTiP handles the trajectory loop internally, but this path is still CPU-based.

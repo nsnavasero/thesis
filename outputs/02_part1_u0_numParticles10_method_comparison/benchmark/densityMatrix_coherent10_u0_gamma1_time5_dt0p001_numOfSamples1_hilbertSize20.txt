@@ -1,0 +1,21 @@
+Method: densityMatrix
+- initial_state_type = coherent
+- num_of_particles = 10.0
+- gamma = 1.0
+- time = 5.0
+- dt = 0.001
+- num_of_samples = 1
+- interaction_strength = 0.0
+- seed = not used
+- hilbert_size = 20
+- coherent_alpha = 3.1622776601683795
+- backend used = cpu
+- setup_runtime_seconds = 0.004016
+- solve_runtime_seconds = 0.188312
+- postprocess_runtime_seconds = 0.001415
+- total_runtime_seconds = 0.193746
+- solver_peak_python_memory = 0.800 MiB
+- peak_process_memory = 273.066 MiB
+- output points = 5001
+- CSV size = 981.731 KiB
+- CSV path = C:\Users\PREDATOR NEO 16\Desktop\Final Thesis Code\outputs\02_part1_u0_numParticles10_method_comparison\csv\densityMatrix_coherent10_u0_gamma1_time5_dt0p001_numOfSamples1_hilbertSize20.csv

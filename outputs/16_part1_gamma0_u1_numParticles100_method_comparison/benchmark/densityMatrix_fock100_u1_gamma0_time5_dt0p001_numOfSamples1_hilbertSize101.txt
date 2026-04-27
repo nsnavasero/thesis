@@ -1,0 +1,20 @@
+Method: densityMatrix
+- initial_state_type = fock
+- num_of_particles = 100.0
+- gamma = 0.0
+- time = 5.0
+- dt = 0.001
+- num_of_samples = 1
+- interaction_strength = 1.0
+- seed = not used
+- hilbert_size = 101
+- backend used = cpu
+- setup_runtime_seconds = 0.000376
+- solve_runtime_seconds = 0.372948
+- postprocess_runtime_seconds = 0.001957
+- total_runtime_seconds = 0.375284
+- solver_peak_python_memory = 3.858 MiB
+- peak_process_memory = 319.098 MiB
+- output points = 5001
+- CSV size = 981.731 KiB
+- CSV path = C:\Users\PREDATOR NEO 16\Desktop\Final Thesis Code\outputs\16_part1_gamma0_u1_numParticles100_method_comparison\csv\densityMatrix_fock100_u1_gamma0_time5_dt0p001_numOfSamples1_hilbertSize101.csv

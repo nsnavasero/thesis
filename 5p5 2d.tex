@@ -1,0 +1,46 @@
+\chapter{Two-Site Density-Matrix vs Positive-$P$ Mean Comparison}
+Finally, we explore in this subsection the positive-$P$ method for two sites as a proof-of-concept representative for the general case of arbitrary number of sites in the dissipative Bose-Hubbard model. Since there is no exact closed form solution for this, we are overlaying the positive-$P$ method with the density matrix method.
+
+In Fig.~\ref{fig:twoSiteU1MeanComparison}, we display the mean occupation number for $U/\gamma = 1$. In particular, we compare the positive-$P$ results (dashed) with those obtained using direct integration of the density matrix. We note that for this value of $U/\gamma$, the positive-$P$ method exhibits a numerical instability at early times as indicated by the vertical dotted lines in Fig.~\ref{fig:twoSiteU1MeanComparison}. In contrast, for weak interaction $U/\gamma = 0.1$ as depicted in Fig.~\ref{fig:twoSiteU01MeanComparison}, the positive-$P$ method quantitatively and qualitatively agree with the numerically exact results. We emphasise that this value lies in the weakly interacting regime, for which the positive-$P$ method was able to reproduce the same behavior as the density matrix method. The overall good performance of the positive-$P$ method for the weakly interacting case is consistent with the noise strength being proportional to the interaction strength.
+
+\begin{figure}[h]
+  \centering
+  \begin{subfigure}{0.48\columnwidth}
+    \centering
+    \includegraphics[width=\linewidth]{figures/two_site_mean_n1_science.png}
+    \caption{Site 1 mean occupation for $U/\gamma = 1$.}
+    \label{fig:twoSiteU1MeanSite1}
+  \end{subfigure}
+  \hfill
+  \begin{subfigure}{0.48\columnwidth}
+    \centering
+    \includegraphics[width=\linewidth]{figures/two_site_mean_n2_science.png}
+    \caption{Site 2 mean occupation for $U/\gamma = 1$.}
+    \label{fig:twoSiteU1MeanSite2}
+  \end{subfigure}
+  \caption{
+  Comparison of the density-matrix and positive-$P$ mean occupations for the two-site system with initial Fock state $|1,0\rangle$, interaction strength $U/\gamma = 1$, dissipation rate $\gamma = 1$, and hopping amplitude $J = 1$. The density-matrix curve is shown over the full $5\,\mathrm{s}$ interval, while the positive-$P$ curve is shown only over its numerically stable time window.
+  }
+  \label{fig:twoSiteU1MeanComparison}
+\end{figure}
+
+\begin{figure}[h]
+  \centering
+  \begin{subfigure}{0.48\columnwidth}
+    \centering
+    \includegraphics[width=\linewidth]{figures/two_site_mean_n1_science_u0p1.png}
+    \caption{Site 1 mean occupation for $U/\gamma = 0.1$.}
+    \label{fig:twoSiteU01MeanSite1}
+  \end{subfigure}
+  \hfill
+  \begin{subfigure}{0.48\columnwidth}
+    \centering
+    \includegraphics[width=\linewidth]{figures/two_site_mean_n2_science_u0p1.png}
+    \caption{Site 2 mean occupation for $U/\gamma = 0.1$.}
+    \label{fig:twoSiteU01MeanSite2}
+  \end{subfigure}
+  \caption{
+  Comparison of the density-matrix and positive-$P$ mean occupations for the two-site system with initial Fock state $|1,0\rangle$, interaction strength $U/\gamma = 0.1$, dissipation rate $\gamma = 1$, and hopping amplitude $J = 1$. In this weaker-interaction case, the positive-$P$ trajectories remain stable over the full simulated interval.
+  }
+  \label{fig:twoSiteU01MeanComparison}
+\end{figure}

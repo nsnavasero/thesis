@@ -1,0 +1,275 @@
+\documentclass[12pt]{article}
+\usepackage[a4paper,margin=1in]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage{mathtools}
+
+\title{Exact Single-Mode Dynamics for Nonzero Interaction and Dissipation}
+\author{}
+\date{}
+
+\begin{document}
+\maketitle
+
+\section*{Purpose}
+This note gives a thesis-friendly derivation of the exact dynamics of the mean occupation, the number variance, the equal-time second-order coherence $g^{(2)}$, and the simplest exact expression for the first-order coherence $g^{(1)}$ for a single bosonic mode with nonzero interaction strength $U$ and nonzero loss rate $\gamma$.
+
+The simplest exactly solvable setting is a single mode with Kerr-type interaction and single-particle loss. In this case:
+\begin{itemize}
+\item the number moments are closed and can be solved exactly for any initial state,
+\item the normalized equal-time $g^{(2)}$ is constant in time,
+\item a compact exact formula for $g^{(1)}$ is obtained for an initial coherent state.
+\end{itemize}
+
+\section*{Model}
+Consider one bosonic mode with annihilation operator $\hat a$ and number operator
+\[
+\hat n = \hat a^\dagger \hat a.
+\]
+The Hamiltonian is
+\[
+\hat H = \frac{U}{2}\hat a^\dagger \hat a^\dagger \hat a \hat a
+= \frac{U}{2}\hat n(\hat n-1),
+\]
+and the Lindblad master equation with single-particle loss is
+\[
+\frac{d\rho}{dt}
+= -i[\hat H,\rho]
++ \gamma\left(
+\hat a \rho \hat a^\dagger
+- \frac12\{\hat a^\dagger \hat a,\rho\}
+\right).
+\]
+
+For any operator $\hat O$,
+\[
+\frac{d}{dt}\langle \hat O\rangle
+= -i\langle[\hat O,\hat H]\rangle
++ \gamma\left\langle
+\hat a^\dagger \hat O \hat a
+- \frac12\{\hat a^\dagger \hat a,\hat O\}
+\right\rangle.
+\]
+
+\section*{Mean Occupation}
+Take $\hat O=\hat n$. Since $\hat H$ is a function of $\hat n$ only,
+\[
+[\hat n,\hat H]=0.
+\]
+For the dissipative part,
+\[
+\hat a^\dagger \hat n \hat a = \hat n(\hat n-1),
+\qquad
+\{\hat n,\hat n\}=2\hat n^2.
+\]
+Therefore,
+\[
+\frac{d}{dt}\langle \hat n\rangle
+= \gamma\langle \hat n(\hat n-1)-\hat n^2\rangle
+= -\gamma \langle \hat n\rangle.
+\]
+Hence the exact mean occupation is
+\[
+\boxed{
+\langle \hat n(t)\rangle = \langle \hat n(0)\rangle e^{-\gamma t}.
+}
+\]
+
+\section*{Second Moment and Variance}
+Take $\hat O=\hat n^2$. Again,
+\[
+[\hat n^2,\hat H]=0.
+\]
+Also,
+\[
+\hat a^\dagger \hat n^2 \hat a
+= \hat n(\hat n-1)^2
+= \hat n^3 - 2\hat n^2 + \hat n,
+\]
+and
+\[
+\{\hat n,\hat n^2\}=2\hat n^3.
+\]
+Thus,
+\[
+\frac{d}{dt}\langle \hat n^2\rangle
+= \gamma\left\langle
+\hat n^3 - 2\hat n^2 + \hat n - \hat n^3
+\right\rangle
+= -2\gamma \langle \hat n^2\rangle + \gamma \langle \hat n\rangle.
+\]
+
+Using
+\[
+\langle \hat n(t)\rangle = \langle \hat n(0)\rangle e^{-\gamma t},
+\]
+the exact solution is
+\[
+\boxed{
+\langle \hat n^2(t)\rangle
+= e^{-2\gamma t}\langle \hat n^2(0)\rangle
++ \left(e^{-\gamma t}-e^{-2\gamma t}\right)\langle \hat n(0)\rangle.
+}
+\]
+
+The variance
+\[
+\mathrm{Var}(\hat n) = \langle \hat n^2\rangle - \langle \hat n\rangle^2
+\]
+therefore evolves as
+\[
+\boxed{
+\mathrm{Var}(\hat n(t))
+= e^{-2\gamma t}\mathrm{Var}(\hat n(0))
++ e^{-\gamma t}\left(1-e^{-\gamma t}\right)\langle \hat n(0)\rangle.
+}
+\]
+
+The important point is that both $\langle \hat n\rangle$ and $\mathrm{Var}(\hat n)$ are independent of $U$ because the Hamiltonian commutes with all functions of $\hat n$.
+
+\section*{Exact Equal-Time Second-Order Coherence}
+Define the equal-time second-order coherence by
+\[
+g^{(2)}(t)
+= \frac{\langle \hat a^{\dagger 2}\hat a^2\rangle}{\langle \hat n\rangle^2}
+= \frac{\langle \hat n(\hat n-1)\rangle}{\langle \hat n\rangle^2}.
+\]
+Introduce the factorial second moment
+\[
+F_2(t)=\langle \hat n(\hat n-1)\rangle.
+\]
+Take $\hat O=\hat n(\hat n-1)$. Since this is again a function of $\hat n$ only,
+\[
+[\hat n(\hat n-1),\hat H]=0.
+\]
+For the dissipative part,
+\[
+\hat a^\dagger \hat n(\hat n-1)\hat a
+= \hat n(\hat n-1)(\hat n-2),
+\]
+while
+\[
+\{\hat n,\hat n(\hat n-1)\}=2\hat n^2(\hat n-1).
+\]
+Hence
+\[
+\frac{dF_2}{dt}
+= \gamma\left\langle
+\hat n(\hat n-1)(\hat n-2)-\hat n^2(\hat n-1)
+\right\rangle
+= -2\gamma F_2.
+\]
+Therefore,
+\[
+\boxed{
+F_2(t)=F_2(0)e^{-2\gamma t}.
+}
+\]
+Dividing by
+\[
+\langle \hat n(t)\rangle^2=\langle \hat n(0)\rangle^2 e^{-2\gamma t},
+\]
+we obtain
+\[
+\boxed{
+g^{(2)}(t)=g^{(2)}(0).
+}
+\]
+So the normalized equal-time second-order coherence is exactly time-independent for this model, even when both $U\neq 0$ and $\gamma\neq 0$.
+
+\section*{Simplest Exact First-Order Coherence}
+For first-order coherence, the simplest useful quantity is the field amplitude
+\[
+G^{(1)}(t)=\langle \hat a(t)\rangle,
+\]
+from which one may form the normalized equal-time quantity
+\[
+g^{(1)}(t)=\frac{|\langle \hat a(t)\rangle|^2}{\langle \hat n(t)\rangle}.
+\]
+
+If we take $\hat O=\hat a$, then
+\[
+\frac{d}{dt}\langle \hat a\rangle
+= -\frac{\gamma}{2}\langle \hat a\rangle
+- iU\langle \hat a(\hat n-1)\rangle.
+\]
+This equation is not closed for a general initial state. However, for an initial coherent state
+\[
+|\alpha_0\rangle,
+\qquad
+\bar n_0 = |\alpha_0|^2,
+\]
+the exact solution is
+\[
+\boxed{
+\langle \hat a(t)\rangle
+= \alpha_0 e^{-\gamma t/2}
+\exp\!\left[
+\bar n_0 e^{-\gamma t}\left(e^{-iUt}-1\right)
+\right].
+}
+\]
+
+Taking the modulus squared gives
+\[
+|\langle \hat a(t)\rangle|^2
+= \bar n_0 e^{-\gamma t}
+\exp\!\left[
+2\bar n_0 e^{-\gamma t}\left(\cos(Ut)-1\right)
+\right].
+\]
+Since
+\[
+\langle \hat n(t)\rangle = \bar n_0 e^{-\gamma t},
+\]
+the normalized first-order coherence becomes
+\[
+\boxed{
+g^{(1)}(t)
+= \exp\!\left[
+2\bar n_0 e^{-\gamma t}\left(\cos(Ut)-1\right)
+\right].
+}
+\]
+
+This result shows the main role of the interaction:
+\begin{itemize}
+\item the mean occupation and variance are unaffected by $U$,
+\item but $g^{(1)}$ is reduced by interaction-induced phase diffusion,
+\item dissipation weakens this dephasing effect through the factor $e^{-\gamma t}$.
+\end{itemize}
+
+\section*{Coherent-State Summary}
+For the initial coherent state $|\alpha_0\rangle$, with $\bar n_0=|\alpha_0|^2$, the exact results are
+\[
+\boxed{
+\langle \hat n(t)\rangle = \bar n_0 e^{-\gamma t},
+}
+\]
+\[
+\boxed{
+\mathrm{Var}(\hat n(t)) = \bar n_0 e^{-\gamma t},
+}
+\]
+\[
+\boxed{
+g^{(1)}(t)
+= \exp\!\left[
+2\bar n_0 e^{-\gamma t}\left(\cos(Ut)-1\right)
+\right],
+}
+\]
+\[
+\boxed{
+g^{(2)}(t)=1.
+}
+\]
+
+So, in the simplest exact case:
+\begin{itemize}
+\item the occupation decays exponentially,
+\item the number distribution remains Poissonian,
+\item $g^{(2)}$ stays equal to its initial value,
+\item $g^{(1)}$ carries the nontrivial dependence on $U$.
+\end{itemize}
+
+\end{document}

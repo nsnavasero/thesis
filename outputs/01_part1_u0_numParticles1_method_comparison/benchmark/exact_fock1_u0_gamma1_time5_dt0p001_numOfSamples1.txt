@@ -1,0 +1,19 @@
+Method: exact
+- initial_state_type = fock
+- num_of_particles = 1.0
+- gamma = 1.0
+- time = 5.0
+- dt = 0.001
+- num_of_samples = 1
+- interaction_strength = 0.0
+- seed = not used
+- backend used = cpu
+- setup_runtime_seconds = 0.000015
+- solve_runtime_seconds = 0.000133
+- postprocess_runtime_seconds = 0.000135
+- total_runtime_seconds = 0.000285
+- solver_peak_python_memory = not tracked
+- peak_process_memory = 109.613 MiB
+- output points = 5001
+- CSV size = 982.214 KiB
+- CSV path = C:\Users\PREDATOR NEO 16\Desktop\Final Thesis Code\outputs\01_part1_u0_numParticles1_method_comparison\csv\exact_fock1_u0_gamma1_time5_dt0p001_numOfSamples1.csv

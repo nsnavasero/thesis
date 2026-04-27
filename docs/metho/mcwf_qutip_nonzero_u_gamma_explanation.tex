@@ -1,0 +1,330 @@
+\documentclass[12pt]{article}
+\usepackage[a4paper,margin=1in]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage{mathtools}
+\usepackage{bm}
+
+\title{Monte Carlo Wave-Function Method in QuTiP for the Interacting Dissipative Single-Mode Bosonic System}
+\author{}
+\date{}
+
+\begin{document}
+\maketitle
+
+\section*{Purpose}
+This note gives a thesis-friendly explanation of what the Monte Carlo wave-function method does mathematically in QuTiP for the present single-mode bosonic problem with nonzero interaction strength $U$ and nonzero loss rate $\gamma$. The goal is to connect the model Hamiltonian, the Lindblad equation, the stochastic trajectory picture, and the actual code used in this project.
+
+\section*{Model}
+We consider a single bosonic mode with annihilation operator $\hat a$ and number operator
+\[
+\hat n = \hat a^\dagger \hat a.
+\]
+The interacting Hamiltonian is
+\[
+\hat H = \frac{U}{2}\hat a^\dagger \hat a^\dagger \hat a \hat a
+= \frac{U}{2}\hat n(\hat n-1),
+\]
+and the single-particle loss channel is represented by the collapse operator
+\[
+\hat C = \sqrt{\gamma}\,\hat a.
+\]
+
+The density operator $\rho$ obeys the Lindblad master equation
+\[
+\frac{d\rho}{dt}
+= -i[\hat H,\rho]
++ \hat C \rho \hat C^\dagger
+- \frac12\{\hat C^\dagger \hat C,\rho\}.
+\]
+Since
+\[
+\hat C^\dagger \hat C = \gamma \hat a^\dagger \hat a = \gamma \hat n,
+\]
+this becomes
+\[
+\frac{d\rho}{dt}
+= -i[\hat H,\rho]
++ \gamma \hat a \rho \hat a^\dagger
+- \frac{\gamma}{2}\{\hat n,\rho\}.
+\]
+
+\section*{Why Monte Carlo Trajectories Can Replace the Master Equation}
+Solving the master equation evolves the full density matrix, whose size grows rapidly with Hilbert-space truncation. The Monte Carlo wave-function method rewrites the same open-system dynamics as an ensemble average over stochastic pure-state trajectories. Instead of evolving $\rho(t)$ directly, one evolves many state vectors
+\[
+|\psi_r(t)\rangle,
+\qquad r=1,\dots,N_{\mathrm{traj}},
+\]
+and approximates expectation values by trajectory averaging:
+\[
+\langle \hat O(t)\rangle
+= \mathrm{Tr}\!\bigl(\rho(t)\hat O\bigr)
+\approx \frac{1}{N_{\mathrm{traj}}}\sum_{r=1}^{N_{\mathrm{traj}}}
+\langle \psi_r(t)|\hat O|\psi_r(t)\rangle.
+\]
+
+Mathematically, the method is exact in the limit of infinitely many trajectories:
+\[
+\rho(t) = \mathbb{E}\bigl[|\psi(t)\rangle\langle\psi(t)|\bigr].
+\]
+Thus the Monte Carlo solver does not change the physics; it changes the numerical representation of the same Lindblad evolution.
+
+\section*{Effective Non-Hermitian Hamiltonian}
+Between jumps, each trajectory evolves under the effective non-Hermitian Hamiltonian
+\[
+\hat H_{\mathrm{eff}}
+= \hat H - \frac{i}{2}\hat C^\dagger \hat C.
+\]
+For the present model,
+\[
+\hat H_{\mathrm{eff}}
+= \frac{U}{2}\hat a^\dagger \hat a^\dagger \hat a \hat a
+- \frac{i\gamma}{2}\hat a^\dagger \hat a
+= \frac{U}{2}\hat n(\hat n-1) - \frac{i\gamma}{2}\hat n.
+\]
+
+The Schr\"odinger-type equation for a single trajectory between jumps is
+\[
+\frac{d}{dt}|\psi(t)\rangle
+= -i\hat H_{\mathrm{eff}}|\psi(t)\rangle.
+\]
+Because $\hat H_{\mathrm{eff}}$ is non-Hermitian, the norm of the unnormalized state decreases:
+\[
+\frac{d}{dt}\langle \psi(t)|\psi(t)\rangle \le 0.
+\]
+This norm loss has a direct probabilistic meaning: it encodes the probability that no quantum jump has yet occurred.
+
+\section*{Physical Meaning of the Two Possible Updates}
+At the trajectory level, the dynamics consists of two alternating processes.
+
+\subsection*{1. No-jump evolution}
+If no photon-loss event occurs during a short interval $dt$, the state evolves according to
+\[
+|\tilde\psi(t+dt)\rangle
+\approx \left(1 - i\hat H_{\mathrm{eff}}dt\right)|\psi(t)\rangle.
+\]
+The state is then renormalized:
+\[
+|\psi(t+dt)\rangle
+= \frac{|\tilde\psi(t+dt)\rangle}{\sqrt{\langle \tilde\psi(t+dt)|\tilde\psi(t+dt)\rangle}}.
+\]
+
+For small $dt$, the no-jump probability is
+\[
+p_{\mathrm{no\ jump}}(t,t+dt)
+= 1 - dt\,\langle \psi(t)|\hat C^\dagger \hat C|\psi(t)\rangle + O(dt^2).
+\]
+Since $\hat C^\dagger \hat C=\gamma \hat n$, this becomes
+\[
+p_{\mathrm{no\ jump}}(t,t+dt)
+= 1 - \gamma\,dt\,\langle \hat n\rangle_t + O(dt^2).
+\]
+So the probability of a jump is larger when the mode occupation is larger.
+
+\subsection*{2. Jump evolution}
+If a loss event occurs, the jump operator is applied:
+\[
+|\psi(t)\rangle \longrightarrow
+\frac{\hat C|\psi(t)\rangle}{\sqrt{\langle \psi(t)|\hat C^\dagger \hat C|\psi(t)\rangle}}
+= \frac{\hat a|\psi(t)\rangle}{\sqrt{\langle \hat n\rangle_t}}.
+\]
+For a single collapse channel there is no ambiguity about which jump occurs: every jump corresponds to one action of $\hat a$, meaning the loss of one boson from the mode.
+
+\section*{How the Randomness Enters}
+The stochastic part of the method comes from random numbers used to decide when jumps occur. Conceptually, one may describe the algorithm over a small time step $dt$ as follows:
+\begin{enumerate}
+\item start from a normalized state $|\psi(t)\rangle$,
+\item compute the jump probability
+\[
+p_{\mathrm{jump}} \approx dt\,\langle \psi(t)|\hat C^\dagger \hat C|\psi(t)\rangle
+= \gamma\,dt\,\langle \hat n\rangle_t,
+\]
+\item draw a random number $r\in(0,1)$,
+\item if $r<p_{\mathrm{jump}}$, perform a jump,
+\item otherwise evolve with $\hat H_{\mathrm{eff}}$ and renormalize.
+\end{enumerate}
+
+This is the intuitive discrete-time picture and it is useful for explaining the method in words.
+
+\section*{What QuTiP Actually Does Internally}
+QuTiP's \texttt{mcsolve} implements the same physics more accurately than the simple fixed-step picture above. Instead of deciding jumps only at the ends of user-defined output steps, it propagates the state continuously under $\hat H_{\mathrm{eff}}$ and monitors the norm of the unnormalized state.
+
+For each trajectory, QuTiP samples a random threshold
+\[
+r_1 \in (0,1),
+\]
+then evolves the unnormalized state until
+\[
+\|\tilde\psi(t)\|^2 = r_1.
+\]
+The time at which this equality is reached is the collapse time. QuTiP therefore performs an internal root-finding step to locate the jump time accurately. Once the collapse time is found, the jump operator is applied and the state is renormalized.
+
+Because there is only one collapse operator in this project,
+\[
+\hat C = \sqrt{\gamma}\,\hat a,
+\]
+every collapse is automatically of that type. In a multi-channel problem QuTiP would also choose which collapse operator acts according to relative jump probabilities, but that extra random choice is not needed here.
+
+This detail is important for thesis writing: the user-defined spacing $dt$ in the code sets the list of times at which observables are recorded, but QuTiP may use smaller internal integration steps and a separate collapse-time search between those output times.
+
+\section*{Role of Nonzero $U$ and Nonzero $\gamma$}
+When both $U\neq 0$ and $\gamma\neq 0$, the trajectory evolution contains two competing effects:
+\begin{itemize}
+\item the interaction term
+\[
+\frac{U}{2}\hat a^\dagger \hat a^\dagger \hat a \hat a
+\]
+produces number-dependent phase evolution,
+\item the dissipative term
+\[
+-\frac{i\gamma}{2}\hat a^\dagger \hat a
+\]
+causes norm decay in the no-jump branch and therefore generates stochastic jumps.
+\end{itemize}
+
+So the interacting Monte Carlo trajectory is not just exponential decay. Between jumps, each number component $|n\rangle$ acquires both
+\begin{itemize}
+\item a phase factor from the Kerr interaction,
+\item and an amplitude damping factor from the imaginary part of $\hat H_{\mathrm{eff}}$.
+\end{itemize}
+Then, at random collapse times, the action of $\hat a$ moves weight from $|n\rangle$ to $|n-1\rangle$. Repeating this many times produces a stochastic history of losses superimposed on coherent interacting evolution.
+
+\section*{Trajectory Averaging}
+One trajectory is only one possible realization of the open-system dynamics. The physical observables are obtained by averaging many such realizations. For an operator $\hat O$,
+\[
+\langle \hat O(t)\rangle
+\approx \frac{1}{N_{\mathrm{traj}}}\sum_{r=1}^{N_{\mathrm{traj}}}
+\langle \psi_r(t)|\hat O|\psi_r(t)\rangle.
+\]
+As $N_{\mathrm{traj}}$ increases, the statistical noise decreases roughly like
+\[
+\frac{1}{\sqrt{N_{\mathrm{traj}}}}.
+\]
+This is why Monte Carlo methods trade density-matrix size for sampling noise: one avoids evolving the full density matrix, but one must average many trajectories to obtain smooth results.
+
+\section*{How It Was Coded in This Project}
+The implementation is in the file \texttt{src/bosonic\_dissipation/monte\_carlo\_method.py}. The coded procedure is:
+
+\subsection*{1. Build the Hilbert space and initial state}
+The annihilation operator is created on a truncated Fock space:
+\[
+\hat a = \texttt{qt.destroy(hilbert\_size)}.
+\]
+Then the initial state is chosen as either:
+\begin{itemize}
+\item a Fock state $\lvert n_0\rangle$, or
+\item a coherent state $\lvert \alpha_0\rangle$ with $\alpha_0=\sqrt{n_0}$.
+\end{itemize}
+
+\subsection*{2. Build the operators}
+The code constructs
+\[
+\hat n = \hat a^\dagger \hat a,
+\qquad
+\hat F_2 = \hat a^{\dagger 2}\hat a^2,
+\]
+and the Hamiltonian
+\[
+\hat H = \frac{U}{2}\hat a^{\dagger 2}\hat a^2.
+\]
+The collapse-operator list is
+\[
+\texttt{collapse\_operators = [}\sqrt{\gamma}\,\hat a\texttt{]}.
+\]
+
+\subsection*{3. Build the output-time grid}
+The code defines
+\[
+t_0, t_1, \dots, t_M
+\]
+using
+\[
+\texttt{time\_values = np.arange(0.0, time + dt, dt)}.
+\]
+These are the times at which QuTiP returns expectation values. They should be interpreted as output sampling times, not necessarily as QuTiP's internal solver step size.
+
+\subsection*{4. Run QuTiP's Monte Carlo solver}
+The core call is
+\begin{verbatim}
+result = qt.mcsolve(
+    hamiltonian,
+    psi0,
+    time_values,
+    collapse_operators,
+    [a, n_op, factorial_second_moment_op],
+    ntraj=num_of_samples,
+    seeds=seed,
+    options={"progress_bar": False},
+)
+\end{verbatim}
+This tells QuTiP to:
+\begin{itemize}
+\item evolve \texttt{num\_of\_samples} stochastic trajectories,
+\item use the interacting Hamiltonian $\hat H$,
+\item include the loss process through $\sqrt{\gamma}\,\hat a$,
+\item and record, at each requested time, the expectation values of
+\[
+\hat a, \qquad \hat n, \qquad \hat a^{\dagger 2}\hat a^2.
+\]
+\end{itemize}
+
+\subsection*{5. Average over trajectories and post-process observables}
+After \texttt{mcsolve} finishes, QuTiP has already averaged the requested expectation values over all trajectories. The code then interprets them as:
+\[
+g^{(1)}(t) \equiv \langle \hat a(t)\rangle,
+\]
+\[
+\langle \hat n(t)\rangle,
+\]
+\[
+F_2(t) \equiv \langle \hat a^{\dagger 2}\hat a^2\rangle
+= \langle \hat n(\hat n-1)\rangle.
+\]
+
+From these stored arrays, the code computes the variance through
+\[
+\mathrm{Var}(\hat n)
+= \langle \hat n^2\rangle - \langle \hat n\rangle^2
+= F_2 + \langle \hat n\rangle - \langle \hat n\rangle^2,
+\]
+because
+\[
+\hat a^{\dagger 2}\hat a^2 = \hat n(\hat n-1).
+\]
+It also computes
+\[
+g^{(2)}(t)
+= \frac{\langle \hat a^{\dagger 2}\hat a^2\rangle}{\langle \hat n\rangle^2}
+= \frac{F_2(t)}{\langle \hat n(t)\rangle^2},
+\]
+whenever the denominator is nonzero.
+
+\section*{A Thesis-Friendly Step-by-Step Summary}
+The full method can be summarized in words as follows:
+\begin{enumerate}
+\item Start from the Hamiltonian
+\[
+\hat H = \frac{U}{2}\hat a^{\dagger 2}\hat a^2
+\]
+and the collapse operator
+\[
+\hat C=\sqrt{\gamma}\,\hat a.
+\]
+\item Replace the Lindblad master equation by a stochastic pure-state evolution.
+\item For one trajectory, propagate the state under
+\[
+\hat H_{\mathrm{eff}}=\hat H-\frac{i}{2}\hat C^\dagger \hat C
+\]
+until a randomly determined jump time is reached.
+\item At that random time, apply the jump operator $\hat a$ and renormalize the state.
+\item Continue this no-jump/jump alternation throughout the full simulation interval.
+\item Repeat the whole process for many independent trajectories.
+\item Average the trajectory expectation values to approximate the physical observables of the open quantum system.
+\end{enumerate}
+
+\section*{Interpretation}
+Mathematically, the Monte Carlo method used here is therefore an \emph{unraveling} of the Lindblad equation into random quantum-jump histories. The interaction strength $U$ enters through the deterministic but non-Hermitian inter-jump evolution, while the loss rate $\gamma$ determines the jump statistics. The final observables are not taken from one trajectory but from an ensemble average over many trajectories, which is exactly how QuTiP's \texttt{mcsolve} is used in the project.
+
+\section*{Conclusion}
+For the present single-mode interacting dissipative bosonic system, QuTiP's Monte Carlo solver does the following: it evolves a pure state under an effective Hamiltonian, inserts random loss events according to the decay of the wavefunction norm, applies the collapse operator $\sqrt{\gamma}\,\hat a$ at the collapse time, and then averages the resulting observables over many trajectories. In this way, it reproduces the same Lindblad dynamics that would otherwise be obtained from the density-matrix master equation, but through stochastic trajectory sampling.
+
+\end{document}

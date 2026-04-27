@@ -1,0 +1,165 @@
+\documentclass[12pt]{article}
+\usepackage[a4paper,margin=1in]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage{mathtools}
+
+\title{When the Interaction Strength $U$ Does and Does Not Change the Results}
+\author{}
+\date{}
+
+\begin{document}
+\maketitle
+
+\section*{Purpose}
+This note explains why, in the single-site dissipative model used in this project, the observables
+\[
+\langle \hat n \rangle
+\qquad \text{and} \qquad
+\mathrm{Var}(\hat n)
+\]
+can remain unchanged when the interaction strength $U$ is made nonzero. It also explains which observables \emph{do} change in the single-site case, and why the situation becomes different once a hopping term $J$ is introduced.
+
+\section*{Single-Site Model with Dissipation}
+For a single bosonic mode, define
+\[
+\hat n = \hat a^\dagger \hat a.
+\]
+The on-site interaction term is
+\[
+H_U = \frac{U}{2}\hat a^\dagger \hat a^\dagger \hat a \hat a
+= \frac{U}{2}\hat n(\hat n - 1).
+\]
+In the dissipative case, the loss channel is described by the collapse operator
+\[
+C = \sqrt{\gamma}\,\hat a.
+\]
+
+The key algebraic fact is that
+\[
+[H_U,\hat n] = 0,
+\]
+because $H_U$ is a function only of $\hat n$ itself.
+
+\section*{Why the Mean and Variance of $\hat n$ Do Not Change with $U$}
+Since $H_U$ commutes with $\hat n$, the interaction does not change the occupation probabilities in the Fock basis. Instead, it only generates number-dependent phase evolution between different Fock components.
+
+Therefore, for a single site with only on-site interaction and dissipation, observables built only from number populations are unaffected by whether $U=0$ or $U \neq 0$. In particular:
+\begin{itemize}
+\item the mean particle number $\langle \hat n \rangle$ is unchanged,
+\item the variance $\mathrm{Var}(\hat n)$ is unchanged,
+\item and more generally, any observable that depends only on the diagonal occupation probabilities in the Fock basis is unchanged.
+\end{itemize}
+
+This is why, in the present single-site calculations, the curves for
+\[
+\langle \hat n(t) \rangle
+\qquad \text{and} \qquad
+\mathrm{Var}(\hat n(t))
+\]
+can be the same for $U=0$ and $U \neq 0$.
+
+\section*{What the Interaction Actually Changes in the Single-Site Case}
+Although the number populations are unchanged, the interaction does affect observables that are sensitive to phase coherence or off-diagonal structure.
+
+Examples of observables that can change when $U \neq 0$ are:
+\begin{itemize}
+\item the field amplitude
+\[
+\langle \hat a \rangle,
+\]
+\item the conjugate amplitude
+\[
+\langle \hat a^\dagger \rangle,
+\]
+\item higher-order coherence observables such as
+\[
+\langle \hat a^2 \rangle
+\qquad \text{and} \qquad
+\langle (\hat a^\dagger)^2 \rangle,
+\]
+\item quadrature means and variances, for example
+\[
+\hat X = \frac{\hat a + \hat a^\dagger}{2},
+\qquad
+\hat P = \frac{\hat a - \hat a^\dagger}{2i},
+\]
+\item phase-space distributions such as the Wigner function or the $Q$ function,
+\item and off-diagonal density-matrix elements
+\[
+\rho_{mn}, \qquad m \neq n.
+\]
+\end{itemize}
+
+The physical interpretation is simple:
+\begin{quote}
+the interaction $U$ does not reshuffle the number populations, but it does reshuffle the relative phases between number states.
+\end{quote}
+Hence number observables remain the same, while coherence-sensitive observables generally change.
+
+\section*{Closed and Open Single-Site Cases}
+This conclusion holds both with and without dissipation.
+
+\subsection*{Closed system: $\gamma = 0$}
+If there is no dissipation, the evolution is generated only by
+\[
+H = H_U.
+\]
+Since $[H_U,\hat n]=0$, number moments remain unchanged by $U$, while coherence-sensitive observables can evolve nontrivially because of interaction-induced phase rotation.
+
+\subsection*{Open system: $\gamma \neq 0$}
+If dissipation is present, the loss channel changes the number statistics in time, but the interaction term still does not directly alter the number populations beyond that dissipative evolution. Thus the dependence on $U$ still fails to appear in purely number-based observables such as $\langle \hat n \rangle$ and $\mathrm{Var}(\hat n)$, while coherence-sensitive observables can still show interaction effects.
+
+\section*{What Changes When the Hopping $J$ Is Nonzero}
+The situation changes once hopping between sites is introduced. For a multi-site system, the Hamiltonian contains a tunneling term of the form
+\[
+H_J = -J \sum_{\langle i,j\rangle}
+\left(\hat a_i^\dagger \hat a_j + \hat a_j^\dagger \hat a_i\right),
+\]
+and the interaction term becomes
+\[
+H_U = \frac{U}{2}\sum_i \hat n_i(\hat n_i - 1).
+\]
+
+When $J=0$, each site is independent and the on-site interaction commutes with the local number operators:
+\[
+[H_U,\hat n_i] = 0.
+\]
+Therefore, local occupation-based observables do not distinguish between $U=0$ and $U \neq 0$.
+
+However, when $J \neq 0$, the hopping term does not commute with the interaction term in general. That is,
+\[
+[H_J,H_U] \neq 0
+\]
+in general. Consequently, tunneling and interaction compete in the dynamics, and the results for $U=0$ and $U \neq 0$ will generally differ.
+
+\section*{Interpretation for $\gamma = 0$ and $\gamma \neq 0$ When $J \neq 0$}
+
+\subsection*{Case 1: $\gamma = 0$}
+For the closed system,
+\[
+H = H_J + H_U.
+\]
+If $J \neq 0$, then interaction and hopping jointly determine the evolution. In this regime, one generally expects different time evolution for $U=0$ and $U \neq 0$, including differences in density transport, coherence, and often also number fluctuations at a given site.
+
+\subsection*{Case 2: $\gamma \neq 0$}
+For the open system, dissipation is added through Lindblad loss terms, but the coherent part of the dynamics is still generated by
+\[
+H = H_J + H_U.
+\]
+Therefore, if $J \neq 0$, the difference between $U=0$ and $U \neq 0$ generally remains physically observable even in the presence of loss. Dissipation may weaken or wash out these differences at long times, but it does not remove the fact that hopping and interaction no longer commute.
+
+\section*{Summary}
+The essential conclusions are:
+\begin{itemize}
+\item For the single-site case with $J=0$, the on-site interaction is
+\[
+H_U = \frac{U}{2}\hat n(\hat n-1),
+\]
+which commutes with $\hat n$.
+\item Therefore, purely number-based observables such as $\langle \hat n \rangle$ and $\mathrm{Var}(\hat n)$ do not distinguish between $U=0$ and $U \neq 0$ in this model.
+\item In the same single-site model, coherence-sensitive observables such as $\langle \hat a \rangle$, $\langle \hat a^2 \rangle$, quadratures, and phase-space distributions can change when $U \neq 0$.
+\item Once hopping is introduced, $J \neq 0$, the hopping and interaction terms generally do not commute.
+\item Therefore, for $J \neq 0$, one generally expects different dynamics for $U=0$ and $U \neq 0$, both when $\gamma=0$ and when $\gamma \neq 0$.
+\end{itemize}
+
+\end{document}

@@ -1,0 +1,280 @@
+\documentclass[12pt]{article}
+\usepackage[a4paper,margin=1in]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage{mathtools}
+
+\title{Derivation of Mean, Variance, and First-Order Coherence for Single-Site Dissipation with Nonzero Interaction}
+\author{}
+\date{}
+
+\begin{document}
+\maketitle
+
+\section*{Purpose}
+This note derives the mean particle number, the number variance, and the first-order coherence for a single dissipative bosonic mode with nonzero on-site interaction strength $U$. The key result is that the interaction does not change number-based observables such as
+\[
+\langle \hat n \rangle
+\qquad \text{and} \qquad
+\mathrm{Var}(\hat n),
+\]
+but it does affect coherence-sensitive observables such as
+\[
+\langle \hat a \rangle.
+\]
+
+\section*{Model}
+Consider a single bosonic mode with annihilation operator $\hat a$ and number operator
+\[
+\hat n = \hat a^\dagger \hat a.
+\]
+The on-site interaction Hamiltonian is
+\[
+H = \frac{U}{2}\hat a^\dagger \hat a^\dagger \hat a \hat a
+= \frac{U}{2}\hat n(\hat n-1),
+\]
+and single-particle loss is described by the Lindblad master equation
+\[
+\frac{d\rho}{dt}
+= -i[H,\rho]
++ \gamma\left(\hat a \rho \hat a^\dagger - \frac{1}{2}\{\hat a^\dagger \hat a,\rho\}\right).
+\]
+
+For any operator $\hat O$, the equation of motion for its expectation value is
+\[
+\frac{d}{dt}\langle \hat O\rangle
+= -i\langle[\hat O,H]\rangle
++ \gamma\left\langle
+\hat a^\dagger \hat O \hat a
+- \frac{1}{2}\{\hat a^\dagger \hat a,\hat O\}
+\right\rangle.
+\]
+
+\section*{Mean Particle Number}
+Take $\hat O=\hat n$. Since
+\[
+[H,\hat n]=0,
+\]
+the interaction does not contribute directly to the evolution of $\langle \hat n\rangle$.
+
+For the dissipative part,
+\[
+\hat a^\dagger \hat n \hat a
+= \hat a^\dagger \hat a^\dagger \hat a \hat a
+= \hat n(\hat n-1),
+\]
+and
+\[
+\{\hat a^\dagger \hat a,\hat n\}
+= \{\hat n,\hat n\}
+= 2\hat n^2.
+\]
+Hence
+\[
+\frac{d}{dt}\langle \hat n\rangle
+= \gamma\left\langle \hat n(\hat n-1)-\hat n^2\right\rangle
+= -\gamma \langle \hat n\rangle.
+\]
+Therefore,
+\[
+\boxed{
+\langle \hat n(t)\rangle
+= \langle \hat n(0)\rangle e^{-\gamma t}.
+}
+\]
+
+Thus the mean particle number is independent of $U$.
+
+\section*{Second Moment and Variance}
+Now take $\hat O=\hat n^2$. Again,
+\[
+[H,\hat n^2]=0,
+\]
+since $H$ is a function of $\hat n$ only.
+
+For the dissipative term,
+\[
+\hat a^\dagger \hat n^2 \hat a
+= \hat n(\hat n-1)^2
+= \hat n^3 - 2\hat n^2 + \hat n,
+\]
+while
+\[
+\{\hat n,\hat n^2\}=2\hat n^3.
+\]
+Thus,
+\[
+\frac{d}{dt}\langle \hat n^2\rangle
+= \gamma\left\langle
+\hat n^3 - 2\hat n^2 + \hat n - \hat n^3
+\right\rangle
+= -2\gamma \langle \hat n^2\rangle + \gamma \langle \hat n\rangle.
+\]
+Using
+\[
+\langle \hat n(t)\rangle = \langle \hat n(0)\rangle e^{-\gamma t},
+\]
+this integrates to
+\[
+\boxed{
+\langle \hat n^2(t)\rangle
+= e^{-2\gamma t}\langle \hat n^2(0)\rangle
++\left(e^{-\gamma t}-e^{-2\gamma t}\right)\langle \hat n(0)\rangle.
+}
+\]
+
+The variance is
+\[
+\mathrm{Var}(\hat n)
+= \langle \hat n^2\rangle - \langle \hat n\rangle^2,
+\]
+so
+\[
+\mathrm{Var}(\hat n(t))
+= e^{-2\gamma t}\mathrm{Var}(\hat n(0))
++ e^{-\gamma t}\left(1-e^{-\gamma t}\right)\langle \hat n(0)\rangle.
+\]
+Hence
+\[
+\boxed{
+\mathrm{Var}(\hat n(t))
+= e^{-2\gamma t}\mathrm{Var}(\hat n(0))
++ e^{-\gamma t}\left(1-e^{-\gamma t}\right)\langle \hat n(0)\rangle.
+}
+\]
+
+Again, the variance is independent of $U$.
+
+\subsection*{Special Cases}
+For an initial Fock state with $\langle \hat n(0)\rangle=n_0$ and $\mathrm{Var}(\hat n(0))=0$,
+\[
+\boxed{
+\mathrm{Var}(\hat n(t))
+= n_0 e^{-\gamma t}\left(1-e^{-\gamma t}\right).
+}
+\]
+
+For an initial coherent state with $\langle \hat n(0)\rangle=\bar n_0$ and $\mathrm{Var}(\hat n(0))=\bar n_0$,
+\[
+\boxed{
+\mathrm{Var}(\hat n(t))
+= \bar n_0 e^{-\gamma t}.
+}
+\]
+
+\section*{First-Order Coherence}
+A natural single-time first-order coherence observable is
+\[
+G^{(1)}(t)=\langle \hat a(t)\rangle.
+\]
+Taking $\hat O=\hat a$, we first compute the Hamiltonian term. Since
+\[
+H=\frac{U}{2}\hat n(\hat n-1),
+\]
+and using
+\[
+[f(\hat n),\hat a] = -\hat a\bigl(f(\hat n)-f(\hat n-1)\bigr),
+\]
+we obtain
+\[
+[H,\hat a] = -U\,\hat a(\hat n-1).
+\]
+Therefore,
+\[
+-i\langle[\hat a,H]\rangle
+= -iU\langle \hat a(\hat n-1)\rangle.
+\]
+
+For the dissipative part,
+\[
+\hat a^\dagger \hat a \hat a = \hat n \hat a,
+\]
+and
+\[
+\{\hat n,\hat a\} = \hat n\hat a + \hat a\hat n,
+\]
+which gives
+\[
+\hat a^\dagger \hat a \hat a - \frac{1}{2}\{\hat n,\hat a\}
+= -\frac{1}{2}\hat a.
+\]
+Hence
+\[
+\frac{d}{dt}\langle \hat a\rangle
+= -\frac{\gamma}{2}\langle \hat a\rangle
+- iU\langle \hat a(\hat n-1)\rangle.
+\]
+Equivalently,
+\[
+\boxed{
+\frac{d}{dt}\langle \hat a\rangle
+= -\frac{\gamma}{2}\langle \hat a\rangle
+- iU\langle \hat a(\hat n-1)\rangle.
+}
+\]
+
+This is the key difference from the number moments:
+\begin{itemize}
+\item $\langle \hat n\rangle$ and $\mathrm{Var}(\hat n)$ are closed and independent of $U$,
+\item but $\langle \hat a\rangle$ is not closed and explicitly depends on $U$ through the higher-order moment $\langle \hat a(\hat n-1)\rangle$.
+\end{itemize}
+
+Thus, the interaction affects first-order coherence even though it does not affect the number moments.
+
+\section*{Exact First-Order Coherence for an Initial Coherent State}
+If the initial state is a coherent state
+\[
+|\alpha_0\rangle,
+\qquad
+\bar n_0 = |\alpha_0|^2,
+\]
+then the first-order coherence can be written in closed form as
+\[
+\boxed{
+\langle \hat a(t)\rangle
+=
+\alpha_0 e^{-\gamma t/2}
+\exp\!\left[
+\bar n_0 e^{-\gamma t}\bigl(e^{-iUt}-1\bigr)
+\right].
+}
+\]
+
+Its magnitude is therefore
+\[
+\left|\langle \hat a(t)\rangle\right|
+=
+|\alpha_0| e^{-\gamma t/2}
+\exp\!\left[
+\bar n_0 e^{-\gamma t}\bigl(\cos(Ut)-1\bigr)
+\right].
+\]
+This shows explicitly that:
+\begin{itemize}
+\item dissipation gives the overall decay factor $e^{-\gamma t/2}$,
+\item the interaction $U$ produces an additional dephasing or collapse of coherence,
+\item and this coherence effect occurs even though $\langle \hat n\rangle$ and $\mathrm{Var}(\hat n)$ remain unchanged by $U$.
+\end{itemize}
+
+\section*{Interpretation}
+The essential physics is:
+\begin{itemize}
+\item the interaction Hamiltonian
+\[
+H=\frac{U}{2}\hat n(\hat n-1)
+\]
+commutes with $\hat n$, so number populations are not directly changed by $U$;
+\item therefore the mean and variance of $\hat n$ depend only on the loss rate $\gamma$;
+\item however, $H$ generates number-dependent phase shifts between Fock components;
+\item therefore coherence-sensitive observables such as $\langle \hat a\rangle$ do depend on $U$.
+\end{itemize}
+
+So, in the single-site dissipative problem with nonzero $U$,
+\[
+\boxed{
+\langle \hat n\rangle \text{ and } \mathrm{Var}(\hat n) \text{ are unchanged by } U,
+\qquad
+\langle \hat a\rangle \text{ is changed by } U.
+}
+\]
+
+\end{document}

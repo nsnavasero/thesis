@@ -27,6 +27,7 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Generate Part 1 CSVs, benchmark files, and figures.")
     parser.add_argument("--bundle-name", default=DEFAULT_BUNDLE_NAME)
     parser.add_argument("--num-particles", type=float, default=1.0)
+    parser.add_argument("--interaction-strength", type=float, default=0.0)
     parser.add_argument("--gamma", type=float, default=1.0)
     parser.add_argument("--time", type=float, default=5.0)
     parser.add_argument("--dt", type=float, default=1e-3)
@@ -45,7 +46,12 @@ def main() -> None:
         clear_benchmark=True,
     )
 
-    shared_settings = get_shared_settings(gamma=args.gamma, time=args.time, dt=args.dt)
+    shared_settings = get_shared_settings(
+        interaction_strength=args.interaction_strength,
+        gamma=args.gamma,
+        time=args.time,
+        dt=args.dt,
+    )
     state_configs = get_state_configs(num_of_particles=args.num_particles)
     method_spec_map = get_method_spec_map(seed=args.seed)
 

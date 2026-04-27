@@ -8,7 +8,7 @@ import numpy as np
 import tracemalloc
 
 from .exact_method import _validate_initial_state
-from .io_utils import save_method_output_csv
+from .io_utils import compute_g2_from_mean_and_factorial_second_moment, save_method_output_csv
 
 
 ALPHA_INDEX = 0
@@ -37,10 +37,12 @@ class PositivePMethodResult:
     time_values: np.ndarray
     mean_particle_number: np.ndarray
     variance: np.ndarray
+    factorial_second_moment: np.ndarray
+    g1: np.ndarray
+    g2: np.ndarray
     mean_particle_number_imag: np.ndarray
     variance_imag: np.ndarray
-    second_moment_real: np.ndarray
-    second_moment_imag: np.ndarray
+    factorial_second_moment_imag: np.ndarray
 
 
 def _sample_positive_p_initial_state(
@@ -57,21 +59,15 @@ def _sample_positive_p_initial_state(
     - `state[..., ALPHA_INDEX]` is Olsen-style `alpha`
     - `state[..., ALPHA_PLUS_INDEX]` is Olsen-style `alphaPlus`
 
-    Mapping to the Deuar-style notation you asked about:
+    Mapping to the Deuar-style notation:
     - Deuar et al. (2012): `alpha`, `alphaTilde`
     - Olsen: `alpha`, `alphaPlus`
     - relation used here: `alphaTilde = conj(alphaPlus)`
 
-    Because the Positive-P estimators are simplest in Olsen notation, we store
-    `alphaPlus` internally and use:
-    - mean particle number: <alpha * alphaPlus>
-    - second factorial moment: <(alpha * alphaPlus)^2>
-
-    For the Fock-state sampler this means:
-    - alpha = gamma_sample + mu
-    - alphaPlus = conj(gamma_sample) - conj(mu)
-
-    This is the directly consistent version of Olsen's formulas.
+    With that mapping:
+    - mean particle number estimator: <alpha * alphaPlus>
+    - factorial second moment estimator: <(alpha * alphaPlus)^2>
+    - first-order coherence estimator: <alpha>
     """
 
     state = xp.zeros((num_of_samples, 1, 2), dtype=xp.complex128)
@@ -106,11 +102,18 @@ def _compute_u0_positive_p_observables(
     rng,
 ):
     if initial_state_type == "coherent":
-        mean_particle_number = num_of_particles * xp.exp(-gamma * time_values_backend)
-        variance = mean_particle_number.copy()
-        second_moment = variance - mean_particle_number + mean_particle_number**2
-        zeros = xp.zeros_like(mean_particle_number)
-        return mean_particle_number, variance, second_moment, zeros, zeros, zeros, True
+        coherent_amplitude = xp.sqrt(xp.asarray(num_of_particles, dtype=xp.float64))
+        g1_complex = coherent_amplitude * xp.exp(-0.5 * gamma * time_values_backend)
+        mean_particle_number_complex = num_of_particles * xp.exp(-gamma * time_values_backend)
+        factorial_second_moment_complex = mean_particle_number_complex**2
+        variance_complex = mean_particle_number_complex.copy()
+        return (
+            g1_complex,
+            mean_particle_number_complex,
+            variance_complex,
+            factorial_second_moment_complex,
+            True,
+        )
 
     initial_state = _sample_positive_p_initial_state(
         initial_state_type=initial_state_type,
@@ -122,21 +125,20 @@ def _compute_u0_positive_p_observables(
     alpha0 = initial_state[:, 0, ALPHA_INDEX]
     alpha_plus0 = initial_state[:, 0, ALPHA_PLUS_INDEX]
     decay = xp.exp(-0.5 * gamma * time_values_backend)
-    occupation0 = alpha0 * alpha_plus0
-    mean_occupation0 = xp.mean(occupation0)
-    mean_occupation0_sq = xp.mean(occupation0**2)
     decay_sq = decay**2
 
-    mean_particle_number_complex = mean_occupation0 * decay_sq
-    second_moment_complex = mean_occupation0_sq * (decay_sq**2)
-    variance_complex = second_moment_complex + mean_particle_number_complex - mean_particle_number_complex**2
+    g1_complex = xp.mean(alpha0) * decay
+    occupation0 = alpha0 * alpha_plus0
+    mean_particle_number_complex = xp.mean(occupation0) * decay_sq
+    factorial_second_moment_complex = xp.mean(occupation0**2) * (decay_sq**2)
+    variance_complex = (
+        factorial_second_moment_complex + mean_particle_number_complex - mean_particle_number_complex**2
+    )
     return (
+        g1_complex,
         mean_particle_number_complex,
         variance_complex,
-        second_moment_complex,
-        xp.imag(mean_particle_number_complex),
-        xp.imag(variance_complex),
-        xp.imag(second_moment_complex),
+        factorial_second_moment_complex,
         False,
     )
 
@@ -153,21 +155,7 @@ def _simulate_positive_p_interacting_single_site(
     xp,
     rng,
 ):
-    """Vectorized single-site Positive-P template for nonzero interaction.
-
-    This batches all trajectories together:
-    - axis 0 = trajectory/sample
-    - axis 1 = time index
-
-    That means we only loop over time steps in Python and update every sample
-    at once, which is much faster than a Python loop over samples.
-
-    Interaction convention in this template:
-    - alpha and alphaPlus are treated as independent Positive-P variables
-    - the drift/noise signs follow a common single-mode Kerr-style template
-    - this should be sanity-checked against the exact reference you decide to
-      follow for your thesis before you rely on it for final physics results
-    """
+    """Vectorized single-site Positive-P solver for nonzero interaction."""
 
     initial_state = _sample_positive_p_initial_state(
         initial_state_type=initial_state_type,
@@ -180,12 +168,14 @@ def _simulate_positive_p_interacting_single_site(
     alpha_plus = initial_state[:, 0, ALPHA_PLUS_INDEX].copy()
 
     num_times = int(time_values_backend.shape[0])
+    g1_complex = xp.empty(num_times, dtype=xp.complex128)
     mean_particle_number_complex = xp.empty(num_times, dtype=xp.complex128)
-    second_moment_complex = xp.empty(num_times, dtype=xp.complex128)
+    factorial_second_moment_complex = xp.empty(num_times, dtype=xp.complex128)
 
     occupation = alpha * alpha_plus
+    g1_complex[0] = xp.mean(alpha)
     mean_particle_number_complex[0] = xp.mean(occupation)
-    second_moment_complex[0] = xp.mean(occupation**2)
+    factorial_second_moment_complex[0] = xp.mean(occupation**2)
 
     sqrt_minus_i_u = xp.sqrt(-1j * interaction_strength)
     sqrt_plus_i_u = xp.sqrt(1j * interaction_strength)
@@ -202,11 +192,14 @@ def _simulate_positive_p_interacting_single_site(
         alpha_plus = alpha_plus + drift_alpha_plus * dt + sqrt_plus_i_u * alpha_plus * noise_2
 
         occupation = alpha * alpha_plus
+        g1_complex[time_index] = xp.mean(alpha)
         mean_particle_number_complex[time_index] = xp.mean(occupation)
-        second_moment_complex[time_index] = xp.mean(occupation**2)
+        factorial_second_moment_complex[time_index] = xp.mean(occupation**2)
 
-    variance_complex = second_moment_complex + mean_particle_number_complex - mean_particle_number_complex**2
-    return mean_particle_number_complex, variance_complex, second_moment_complex
+    variance_complex = (
+        factorial_second_moment_complex + mean_particle_number_complex - mean_particle_number_complex**2
+    )
+    return g1_complex, mean_particle_number_complex, variance_complex, factorial_second_moment_complex
 
 
 def simulate_positive_p_method(
@@ -249,12 +242,10 @@ def simulate_positive_p_method(
     solve_start = perf_counter()
     if interaction_strength == 0.0:
         (
+            g1_complex,
             mean_particle_number_complex,
             variance_complex,
-            second_moment_complex,
-            mean_particle_number_imag,
-            variance_imag,
-            second_moment_imag,
+            factorial_second_moment_complex,
             coherent_fast_path_used,
         ) = _compute_u0_positive_p_observables(
             initial_state_type=initial_state_type,
@@ -278,7 +269,12 @@ def simulate_positive_p_method(
                 "initial representation was still sampled across num_of_samples trajectories."
             )
     else:
-        mean_particle_number_complex, variance_complex, second_moment_complex = _simulate_positive_p_interacting_single_site(
+        (
+            g1_complex,
+            mean_particle_number_complex,
+            variance_complex,
+            factorial_second_moment_complex,
+        ) = _simulate_positive_p_interacting_single_site(
             initial_state_type=initial_state_type,
             num_of_particles=num_of_particles,
             interaction_strength=interaction_strength,
@@ -289,12 +285,9 @@ def simulate_positive_p_method(
             xp=xp,
             rng=rng,
         )
-        mean_particle_number_imag = xp.imag(mean_particle_number_complex)
-        variance_imag = xp.imag(variance_complex)
-        second_moment_imag = xp.imag(second_moment_complex)
         fast_path_used = False
         notes = (
-            "interaction_strength != 0, so the vectorized stochastic Positive-P template was used. "
+            "interaction_strength != 0, so the vectorized stochastic Positive-P solver was used. "
             "Trajectories were batched across samples for speed."
         )
     _, solver_peak_bytes = tracemalloc.get_traced_memory()
@@ -303,12 +296,16 @@ def simulate_positive_p_method(
 
     postprocess_start = perf_counter()
     time_values = np.asarray(time_values_backend)
-    mean_particle_number_complex = np.asarray(mean_particle_number_complex)
-    second_moment_complex = np.asarray(second_moment_complex)
-    variance_complex = np.asarray(variance_complex)
-    mean_particle_number_imag = np.asarray(mean_particle_number_imag)
-    variance_imag = np.asarray(variance_imag)
-    second_moment_imag = np.asarray(second_moment_imag)
+    g1_complex = np.asarray(g1_complex, dtype=np.complex128)
+    mean_particle_number_complex = np.asarray(mean_particle_number_complex, dtype=np.complex128)
+    factorial_second_moment_complex = np.asarray(factorial_second_moment_complex, dtype=np.complex128)
+    variance_complex = np.asarray(variance_complex, dtype=np.complex128)
+    mean_particle_number = np.real(mean_particle_number_complex)
+    factorial_second_moment = np.real(factorial_second_moment_complex)
+    mean_particle_number_imag = np.imag(mean_particle_number_complex)
+    variance_imag = np.imag(variance_complex)
+    factorial_second_moment_imag = np.imag(factorial_second_moment_complex)
+    g2 = compute_g2_from_mean_and_factorial_second_moment(mean_particle_number, factorial_second_moment)
     postprocess_runtime_seconds = perf_counter() - postprocess_start
 
     total_runtime_seconds = perf_counter() - total_start
@@ -331,12 +328,14 @@ def simulate_positive_p_method(
         fast_path_used=fast_path_used,
         notes=notes,
         time_values=time_values,
-        mean_particle_number=np.real(mean_particle_number_complex),
+        mean_particle_number=mean_particle_number,
         variance=np.real(variance_complex),
-        mean_particle_number_imag=np.asarray(mean_particle_number_imag),
-        variance_imag=np.asarray(variance_imag),
-        second_moment_real=np.real(second_moment_complex),
-        second_moment_imag=np.asarray(second_moment_imag),
+        factorial_second_moment=factorial_second_moment,
+        g1=g1_complex,
+        g2=g2,
+        mean_particle_number_imag=mean_particle_number_imag,
+        variance_imag=variance_imag,
+        factorial_second_moment_imag=factorial_second_moment_imag,
     )
 
 
@@ -367,6 +366,7 @@ def run_positive_p_and_save(
         method_name=result.method_name,
         initial_state_type=result.initial_state_type,
         num_of_particles=result.num_of_particles,
+        interaction_strength=result.interaction_strength,
         gamma=result.gamma,
         time=result.total_time,
         dt=result.dt,
@@ -375,5 +375,15 @@ def run_positive_p_and_save(
         time_values=result.time_values,
         mean_values=result.mean_particle_number,
         variance_values=result.variance,
+        extra_columns={
+            "factorial_second_moment": result.factorial_second_moment,
+            "g1_real": np.real(result.g1),
+            "g1_imag": np.imag(result.g1),
+            "g1_magnitude": np.abs(result.g1),
+            "g2": result.g2,
+            "mean_particle_number_imag": result.mean_particle_number_imag,
+            "variance_imag": result.variance_imag,
+            "factorial_second_moment_imag": result.factorial_second_moment_imag,
+        },
     )
     return result, output_path

@@ -1,0 +1,296 @@
+\documentclass[12pt]{article}
+\usepackage[a4paper,margin=1in]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage{mathtools}
+\usepackage{bm}
+
+\title{Closed-Form Solution for Nonzero Hopping, Zero Interaction, and Nonzero Dissipation}
+\author{}
+\date{}
+
+\begin{document}
+\maketitle
+
+\section*{Purpose}
+This note derives the closed-form solution for a bosonic lattice with nonzero hopping amplitude $J$, zero onsite interaction $U$, and nonzero single-particle loss rate $\gamma$. The key point is that when $U=0$, the model remains quadratic, so the equations of motion for the first moments and the one-body correlation matrix close exactly.
+
+\section*{Model}
+Consider bosonic annihilation operators $\hat a_j$ on sites $j=1,\dots,M$. The Hamiltonian is
+\[
+\hat H
+=
+-J\sum_{\langle i,j\rangle}
+\left(\hat a_i^\dagger \hat a_j + \hat a_j^\dagger \hat a_i\right),
+\]
+and the local loss operators are
+\[
+\hat L_j = \sqrt{\gamma}\,\hat a_j.
+\]
+The density matrix evolves according to the Lindblad master equation
+\[
+\frac{d\rho}{dt}
+=
+-i[\hat H,\rho]
++
+\sum_{j=1}^M
+\gamma
+\left(
+\hat a_j \rho \hat a_j^\dagger
+-\frac12 \{\hat a_j^\dagger \hat a_j,\rho\}
+\right).
+\]
+
+Since $U=0$, the Hamiltonian is quadratic. This is why the problem remains analytically solvable.
+
+\section*{Quadratic Hamiltonian in Matrix Form}
+Write the Hamiltonian as
+\[
+\hat H = \sum_{m,n} h_{mn}\,\hat a_m^\dagger \hat a_n,
+\]
+where $h$ is the single-particle hopping matrix. For nearest-neighbor hopping,
+\[
+h_{mn} =
+\begin{cases}
+-J, & m,n \text{ nearest neighbors},\\
+0, & \text{otherwise}.
+\end{cases}
+\]
+
+\section*{Equation of Motion for the First Moments}
+For any operator $\hat O$, the Lindblad equation gives
+\[
+\frac{d}{dt}\langle \hat O\rangle
+=
+-i\langle[\hat O,\hat H]\rangle
++
+\sum_j \gamma
+\left\langle
+\hat a_j^\dagger \hat O \hat a_j
+-\frac12\{\hat a_j^\dagger \hat a_j,\hat O\}
+\right\rangle.
+\]
+
+Take $\hat O=\hat a_\ell$. First compute the Hamiltonian commutator. Using
+\[
+[\hat a_\ell,\hat a_m^\dagger \hat a_n] = \delta_{\ell m}\hat a_n,
+\]
+we obtain
+\[
+[\hat a_\ell,\hat H]
+=
+\sum_{m,n} h_{mn}[\hat a_\ell,\hat a_m^\dagger \hat a_n]
+=
+\sum_n h_{\ell n}\hat a_n.
+\]
+Therefore, the coherent part contributes
+\[
+-i\langle[\hat a_\ell,\hat H]\rangle
+=
+-i\sum_n h_{\ell n}\langle \hat a_n\rangle.
+\]
+
+For the dissipative part, one finds
+\[
+\sum_j \gamma
+\left\langle
+\hat a_j^\dagger \hat a_\ell \hat a_j
+-\frac12\{\hat a_j^\dagger \hat a_j,\hat a_\ell\}
+\right\rangle
+=
+-\frac{\gamma}{2}\langle \hat a_\ell\rangle.
+\]
+Hence,
+\[
+\boxed{
+\frac{d}{dt}\langle \hat a_\ell\rangle
+=
+-i\sum_n h_{\ell n}\langle \hat a_n\rangle
+-\frac{\gamma}{2}\langle \hat a_\ell\rangle.
+}
+\]
+
+\section*{Vector Form of the Solution}
+Define the first-moment vector
+\[
+\bm{\alpha}(t)
+=
+\begin{pmatrix}
+\langle \hat a_1(t)\rangle\\
+\langle \hat a_2(t)\rangle\\
+\vdots\\
+\langle \hat a_M(t)\rangle
+\end{pmatrix}.
+\]
+Then the equations of motion become
+\[
+\frac{d}{dt}\bm{\alpha}(t)
+=
+\left(-ih-\frac{\gamma}{2}I\right)\bm{\alpha}(t),
+\]
+where $I$ is the $M\times M$ identity matrix.
+
+This is a linear ordinary differential equation with constant coefficients, so its solution is
+\[
+\boxed{
+\bm{\alpha}(t)
+=
+e^{\left(-ih-\frac{\gamma}{2}I\right)t}
+\bm{\alpha}(0).
+}
+\]
+Because $I$ commutes with $h$, this can be factorized as
+\[
+\boxed{
+\bm{\alpha}(t)
+=
+e^{-\gamma t/2}\,e^{-iht}\,\bm{\alpha}(0).
+}
+\]
+
+This expression gives the exact closed-form evolution of the first-order coherence amplitudes.
+
+\section*{Diagonalization of the Hopping Matrix}
+If the hopping matrix is diagonalizable, write
+\[
+h = V \varepsilon V^{-1},
+\]
+where
+\[
+\varepsilon = \operatorname{diag}(\varepsilon_1,\dots,\varepsilon_M)
+\]
+contains the single-particle eigenvalues. Then
+\[
+e^{-iht} = V e^{-i\varepsilon t} V^{-1},
+\]
+so the solution becomes
+\[
+\boxed{
+\bm{\alpha}(t)
+=
+e^{-\gamma t/2}
+V\,\operatorname{diag}(e^{-i\varepsilon_1 t},\dots,e^{-i\varepsilon_M t})\,V^{-1}\bm{\alpha}(0).
+}
+\]
+
+This makes the physical structure transparent:
+\begin{itemize}
+\item the hopping produces coherent oscillation and mode mixing through the phases $e^{-i\varepsilon_k t}$,
+\item the dissipation contributes the universal damping factor $e^{-\gamma t/2}$.
+\end{itemize}
+
+\section*{Equation of Motion for the One-Body Correlation Matrix}
+Now define the one-body correlation matrix
+\[
+C_{mn}(t)=\langle \hat a_m^\dagger \hat a_n\rangle.
+\]
+In matrix form,
+\[
+C(t) =
+\begin{pmatrix}
+\langle \hat a_1^\dagger \hat a_1\rangle & \cdots & \langle \hat a_1^\dagger \hat a_M\rangle\\
+\vdots & \ddots & \vdots\\
+\langle \hat a_M^\dagger \hat a_1\rangle & \cdots & \langle \hat a_M^\dagger \hat a_M\rangle
+\end{pmatrix}.
+\]
+
+For a quadratic Hamiltonian and linear loss, the correlation matrix also obeys a closed equation:
+\[
+\boxed{
+\frac{dC}{dt}
+=
+-i[h,C]-\gamma C.
+}
+\]
+This has the exact solution
+\[
+\boxed{
+C(t)
+=
+e^{\left(ih-\frac{\gamma}{2}I\right)t}
+\,C(0)\,
+e^{\left(-ih-\frac{\gamma}{2}I\right)t}.
+}
+\]
+Again using the fact that $I$ commutes with $h$, this simplifies to
+\[
+\boxed{
+C(t)
+=
+e^{-\gamma t}\,
+e^{iht}\,
+C(0)\,
+e^{-iht}.
+}
+\]
+
+This is the exact closed-form result for the one-body density matrix, which also contains the first-order coherence information.
+
+\section*{Site Occupations}
+The local particle number at site $j$ is
+\[
+\hat n_j = \hat a_j^\dagger \hat a_j,
+\]
+so its expectation value is obtained from the diagonal of the correlation matrix:
+\[
+\boxed{
+\langle \hat n_j(t)\rangle = C_{jj}(t).
+}
+\]
+Thus, once the matrix $C(t)$ is known, all site occupations follow directly.
+
+\section*{Normal-Mode Picture}
+Define normal-mode operators
+\[
+\hat b_k = \sum_j (V^{-1})_{kj}\hat a_j,
+\]
+so that the Hamiltonian becomes diagonal:
+\[
+\hat H = \sum_k \varepsilon_k \hat b_k^\dagger \hat b_k.
+\]
+Then each mode evolves independently. For the first moments,
+\[
+\boxed{
+\langle \hat b_k(t)\rangle
+=
+e^{-\gamma t/2}e^{-i\varepsilon_k t}\langle \hat b_k(0)\rangle.
+}
+\]
+For the mode correlations,
+\[
+\boxed{
+\langle \hat b_k^\dagger(t)\hat b_q(t)\rangle
+=
+e^{-\gamma t}e^{i(\varepsilon_k-\varepsilon_q)t}
+\langle \hat b_k^\dagger(0)\hat b_q(0)\rangle.
+}
+\]
+
+This shows that in the normal-mode basis the exact solution consists simply of coherent oscillation plus exponential damping.
+
+\section*{Interpretation}
+When $J\neq 0$, $U=0$, and $\gamma\neq 0$:
+\begin{itemize}
+\item hopping transports amplitude and coherence between sites,
+\item the absence of interaction means there is no nonlinear many-body mixing,
+\item local dissipation damps all amplitudes exponentially,
+\item and the full problem reduces to linear algebra on the single-particle hopping matrix.
+\end{itemize}
+
+This is why a closed-form solution exists in this case, whereas for $U\neq 0$ such a simple exact solution is generally no longer available.
+
+\section*{Conclusion}
+For nonzero hopping, zero interaction, and nonzero dissipation, the bosonic lattice remains exactly solvable because the Hamiltonian is quadratic. The exact solutions are
+\[
+\bm{\alpha}(t)
+=
+e^{-\gamma t/2}e^{-iht}\bm{\alpha}(0)
+\]
+for the first moments, and
+\[
+C(t)
+=
+e^{-\gamma t}e^{iht}C(0)e^{-iht}
+\]
+for the one-body correlation matrix. These formulas provide the closed-form evolution of first-order coherence and local occupations throughout the lattice.
+
+\end{document}

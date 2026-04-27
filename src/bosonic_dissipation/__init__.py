@@ -1,2 +1,1 @@
-"""Utilities for simulating single-site bosonic dissipation methods."""
-
+"""Utilities for simulating bosonic dissipation methods."""

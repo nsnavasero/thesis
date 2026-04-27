@@ -1,0 +1,182 @@
+% !TEX root =  main.tex
+\section{Single Site Dissipation}
+
+In this chapter, we will present the main numerical results of our work, which is the benchmarking of the numerical methods discussed in the previous chapter against the exact results for an open bosonic system with a single site. The dissipation rate used in the following is $\gamma=1$. We will primarily examine the time evolution of the mean and variance of the site's particle number.
+
+
+\subsection{Initial Fock state}
+\hspace{\parindent} In Fig. 3.1, we show that the time evolution of the mean particle number for each method follow the exponential decay of the exact results. Same can be said for the time evolution of the variance as shown in Fig.~\ref{fig:fockVariance}, although it is more obvious that the results for positive-P results in that case slightly deviate from exact results close to the start of the simulation.
+
+\begin{figure}[h]
+  \centering
+  \includesvg[width=0.8\columnwidth]{figures/01/fock1_mean_gamma1_time5_dt0p001.svg}\\
+  \caption{
+  The time evolution of the mean particle number of an initial Fock state $\ket{n=1}$ with $\gamma=1$. The Hilbert space used for Density Matrix and Monte Carlo has a dimension of 2. Number of samples used for Monte Carlo and positive-P are 1000. All methods have overlapping graphs, suggesting that all their results agree with each other.
+  }\label{fig:fockMean}
+\end{figure}
+\begin{figure}[h]
+  \centering
+  \includesvg[width=0.8\columnwidth]{figures/01/fock1_variance_gamma1_time5_dt0p001.svg}\\
+  \caption{
+  The time evolution of the variance of an initial Fock state $\ket{n=1}$ with $\gamma=1$. The Hilbert space used for Density Matrix and Monte Carlo has a dimension of 2. Number of samples used for Monte Carlo and positive-P are 1000. All methods have overlapping graphs, except that of Positive-P.
+  }\label{fig:fockVariance}
+\end{figure}
+
+\hspace{\parindent} A closer look of the subtle differences of the mean and variance are seen in Fig.~\ref{fig:fockDifference}. As expected, the density matrix method is exactly the same as the closed-form solution since in this system, we simply numerically integrate coupled differential equations. The Monte Carlo method has a lot of noise, but stays within a reasonable amount near the exact values. The positive-P method starts out a bit different from the exact values then becomes more accurate as the particle decays to zero. Since $U=0$, there is no noise for the time evolution of positive-P. Only its sampling method for the Fock state is stochastic, so only the very first time step is affected by noise. This is the reason why the positive-P method exhibits slight deviation at the beginning. Increasing sample trajectories should keep both Monte Carlo and positive-P closer to the exact results.
+
+\begin{figure}[h]
+  \centering
+  \begin{subfigure}{0.48\columnwidth}
+    \centering
+    \includesvg[width=\linewidth]{figures/01/fock1_meanDifference_gamma1_time5_dt0p001.svg}
+    \caption{Mean difference}
+    \label{fig:fockMeanDifference}
+  \end{subfigure}
+  \hfill
+  \begin{subfigure}{0.48\columnwidth}
+    \centering
+    \includesvg[width=\linewidth]{figures/01/fock1_varDifference_gamma1_time5_dt0p001.svg}
+    \caption{Variance difference}
+    \label{fig:fockVarDifference}
+  \end{subfigure}
+  \caption{
+  The differences in mean and variance for each method compared to the exact formulas for a given Fock state $\ket{n=1}$. The Hilbert space used for Density Matrix and Monte Carlo has a dimension of 2. Number of samples used for Monte Carlo and positive-P are 1000. 
+  }
+  \label{fig:fockDifference}
+\end{figure}
+
+
+
+\subsection{Initial coherent state}
+\hspace{\parindent} Similar to the analysis done in the previous subsection, we also find good agreement between the different methods for an initial coherent state, as shown in Fig~\ref{fig:coherentMean} and Fig~\ref{fig:coherentVariance}. However, there is quite less error here compared to the results for an initial Fock state, as shown in Fig~\ref{fig:coherentDifference}. The order of magnitude of the error here is only $10^-4$, which is significantly smaller than the error of $10^-2$ in Fig.~\ref{fig:fockDifference} where the magnitude of the error is in $10^{-2}$. Notably, we only need one trajectory for the positive-P method for an initial coherent state as noise is absent for $U=0$. Since the initialized quantum state is a coherent state, there was also no need to sample the initial state multiple times.
+
+\hspace{\parindent}A key takeaway for the Monte Carlo method is that a coherent state initialization is computationally more resource-heavy because of the larger Hilbert space size, despite having the same initial particle number with the Fock state from earlier. However, in a system with purely dissipation, the error is much less varied. Noise is still apparent for the Monte Carlo method but it is significantly in smaller scale than that from Fock state initialization ($10^{-4}$ compared to $10^{-2}$).
+
+
+\begin{figure}[h]
+  \centering
+  \includesvg[width=0.8\columnwidth]{figures/01/coherent1_mean_gamma1_time5_dt0p001.svg}\\
+  \caption{
+  The time evolution of the mean particle number of an initial coherent state $\ket{\alpha=1}$ with $\gamma=1$. The Hilbert space used for Density Matrix and Monte Carlo has a dimension of 6. Number of samples used for Monte Carlo is 1000. All methods have overlapping graphs, suggesting that all their results agree with each other.
+  }\label{fig:coherentMean}
+\end{figure}
+\begin{figure}[h]
+  \centering
+  \includesvg[width=0.8\columnwidth]{figures/01/coherent1_variance_gamma1_time5_dt0p001.svg}\\
+  \caption{
+  The time evolution of the variance of an initial coherent state $\ket{\alpha=1}$ with $\gamma=1$. The Hilbert space used for Density Matrix and Monte Carlo has a dimension of 2. Number of samples used for Monte Carlo is 1000. All methods have nearly overlapping graphs, with only small deviations visible for the stochastic methods.
+  }\label{fig:coherentVariance}
+\end{figure}
+\begin{figure}[h]
+  \centering
+  \begin{subfigure}{0.48\columnwidth}
+    \centering
+    \includesvg[width=\linewidth]{figures/01/coherent1_meanDifference_gamma1_time5_dt0p001.svg}
+    \caption{Mean difference}
+    \label{fig:coherentMeanDifference}
+  \end{subfigure}
+  \hfill
+  \begin{subfigure}{0.48\columnwidth}
+    \centering
+    \includesvg[width=\linewidth]{figures/01/coherent1_varDifference_gamma1_time5_dt0p001.svg}
+    \caption{Variance difference}
+    \label{fig:coherentVarDifference}
+  \end{subfigure}
+  \caption{
+  The differences in mean and variance for each method compared to the exact formulas for an initial coherent state $\ket{\alpha=1}$. The Hilbert space used for Density Matrix and Monte Carlo has a dimension of 2. Number of samples used for Monte Carlo and positive-P are 1000.
+  }
+  \label{fig:coherentDifference}
+\end{figure}
+
+
+\section{Benchmarking the methods}
+%%%%%%%%%%%%%BETTER WAY TO PARSE THIS DATA BY HIGHLIGHTING IMPORTANT STUFF IM DESCRIBING HERE. REMAKE GRAPHS
+\hspace{\parindent}Next, we perform a performance benchmark by examining the estimated runtime and peak process memory in each solver. For varying number of samples, initial state, and interaction term $U$, the runtime and memory used for each method was measured. We discuss the distinct characteristics of each method when applicable as well as possible error in the benchmark data. The table of values of the graphs in this subsection are included in Appendix~\ref{app:table_benchmark}.
+
+% \hspace{\parindent}The runtime for direct integration of density matrix significantly increase when the particle number is increase from 100 to 1000, as shown in the top panel of Fig.~\ref{fig:benchmarkGamma1U0}. While this is generally true for all the methods considered in this thesis, the steep increase in the runtime is notable for the direct integration of the density matrix. Monte Carlo was not able to run at 1000 particles. These apply for all the figures in this section.
+
+\hspace{\parindent} Fig.~\ref{fig:benchmarkGamma1U0} shows the runtime used for each of the methods with Fock and coherent state initializations where $U=0$. The Monte Carlo method is the slowest of them all, as to be expected since it is the only method here that averages over several samples as well as the size of the Hilbert space. The second slowest is the density matrix method as its calculations scale with the size of the Hilbert space. The exact and positive-P methods are around the same in terms of runtime. Positive-P only needed to run one sample since the interaction term is zero. This highlights a unique advantage of positive-P where it can accurately give the same results around as fast as an exact solution implementation.
+
+\begin{figure}[h]
+  \centering
+  \includesvg[width=0.8\columnwidth]{benchmark bar graphs/runtime_gamma1_u0.svg}\\
+  %\includesvg[width=0.8\columnwidth]{benchmark bar graphs/memory_gamma1_u0.svg}\\
+  \caption{
+  Benchmark runtime and peak process memory for all methods at $\gamma=1$ and $U=0$ as functions of particle number. 
+  }
+  \label{fig:benchmarkGamma1U0}
+\end{figure}
+
+\hspace{\parindent} Fig.~\ref{fig:benchmarkGamma1U0} shows the runtime used for each of the methods with Fock and coherent state initializations where $U=1$. The Monte Carlo method is still the slowest of them all. However, in contrast to the previous figure, the positive-P method is now the second slowest, only slightly faster than the density matrix method. Since the interaction term is nonzero, there is a non-zero noise therm in the SDEs needed to be integrated. So, positive-P needed to average over many samples, which made its runtime slower.
+
+\begin{figure}[h]
+  \centering
+  \includesvg[width=0.8\columnwidth]{benchmark bar graphs/runtime_gamma1_u1.svg}\\
+  %\includesvg[width=0.8\columnwidth]{benchmark bar graphs/memory_gamma1_u1.svg}\\
+  \caption{
+  Benchmark runtime and peak process memory for all methods at $\gamma=1$ and $U=1$ as functions of particle number.
+  }
+  \label{fig:benchmarkGamma1U1}
+\end{figure}
+
+\hspace{\parindent}Most methods do not have a significant difference in runtime when comparing their initial Fock or coherent states, with the exception of Positive-P. This can be clearly seen in Fig.~\ref{fig:benchmarkGamma1U0}, where $U$ is zero, positive-P consistently performs faster when using an initial coherent state compared to a Fock state. However, in Fig.~\ref{fig:benchmarkGamma1U1}, where $U$ is nonzero, positive-P has around the same runtime regardless if it is initialized in the coherent or Fock state. The extra runtime from sampling a Fock state over many samples became negligible because positive-P was already averaging over many samples for each time step. 
+
+\hspace{\parindent} Fig.~\ref{fig:densityMatrixScaling} shows the runtime of density matrix method for increasing number of particles. The jump in runtime from 100 to 1000 particles is more significant than the jump from 1 to 10 or 10 to 100. For a Fock state, the Hilbert space size of 100 and 1000 particles are 101 and 1001 respectively. This would mean that the density matrices would have $101^2=10,201$ and $1001^2 = 1,002,001$ matrix elements respectively. Computing with a large amount of matrix elements for every timestep becomes increasing costly with a larger Hilbert space size.
+% If there was a term that possibly drives the system to a particle number more than its initial particle number, then the Hilbert size should be initialized higher, making the method slower.
+
+% The Monte Carlo code was not able to finish its computations as shown in the other runtime data in the Appendix~\ref{app:table_benchmark}.
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=0.8\columnwidth]{benchmark bar graphs/density_matrix_runtime_vs_particles_science_log_labeled}\\
+  \caption{Solve runtime of the Density Matrix method as a function of particle number, with both axes shown on logarithmic scales. The figure compares the Fock-state benchmarks for $(\gamma,U)=(1,1)$ and $(0,0)$, together with the coherent-state benchmark for $(\gamma,U)=(0,0)$, using the benchmark values at \(N=1,10,100,\) and \(1000\).}
+  \label{fig:densityMatrixScaling}
+\end{figure}
+
+
+\section{Two-Site Density-Matrix vs Positive-$P$ Mean Comparison}
+Finally, we explore in this subsection the positive-$P$ method for two sites as a proof-of-concept representative for the general case of arbitrary number of sites in the dissipative Bose-Hubbard model. Since there is no exact closed form solution for this, we are overlaying the positive-$P$ method with the density matrix method.
+
+In Fig.~\ref{fig:twoSiteU1MeanComparison}, we display the mean occupation number for $U/\gamma = 1$. In particular, we compare the positive-$P$ results (dashed) with those obtained using direct integration of the density matrix. We note that for this value of $U/\gamma$, the positive-$P$ method exhibits a numerical instability at early times as indicated by the vertical dotted lines in Fig.~\ref{fig:twoSiteU1MeanComparison}. In contrast, for weak interaction $U/\gamma = 0.1$ as depicted in Fig.~\ref{fig:twoSiteU01MeanComparison}, the positive-$P$ method quantitatively and qualitatively agree with the numerically exact results. We emphasise that this value lies in the weakly interacting regime, for which the positive-$P$ method was able to reproduce the same behavior as the density matrix method. The overall good performance of the positive-$P$ method for the weakly interacting case is consistent with the noise strength being proportional to the interaction strength.
+
+\begin{figure}[h]
+  \centering
+  \begin{subfigure}{0.48\columnwidth}
+    \centering
+    \includegraphics[width=\linewidth]{figures/two_site_mean_n1_science.png}
+    \caption{Site 1 mean occupation for $U/\gamma = 1$.}
+    \label{fig:twoSiteU1MeanSite1}
+  \end{subfigure}
+  \hfill
+  \begin{subfigure}{0.48\columnwidth}
+    \centering
+    \includegraphics[width=\linewidth]{figures/two_site_mean_n2_science.png}
+    \caption{Site 2 mean occupation for $U/\gamma = 1$.}
+    \label{fig:twoSiteU1MeanSite2}
+  \end{subfigure}
+  \caption{
+  Comparison of the density-matrix and positive-$P$ mean occupations for the two-site system with initial Fock state $|1,0\rangle$, interaction strength $U/\gamma = 1$, dissipation rate $\gamma = 1$, and hopping amplitude $J = 1$. The density-matrix curve is shown over the full $5\,\mathrm{s}$ interval, while the positive-$P$ curve is shown only over its numerically stable time window.
+  }
+  \label{fig:twoSiteU1MeanComparison}
+\end{figure}
+
+\begin{figure}[h]
+  \centering
+  \begin{subfigure}{0.48\columnwidth}
+    \centering
+    \includegraphics[width=\linewidth]{figures/two_site_mean_n1_science_u0p1.png}
+    \caption{Site 1 mean occupation for $U/\gamma = 0.1$.}
+    \label{fig:twoSiteU01MeanSite1}
+  \end{subfigure}
+  \hfill
+  \begin{subfigure}{0.48\columnwidth}
+    \centering
+    \includegraphics[width=\linewidth]{figures/two_site_mean_n2_science_u0p1.png}
+    \caption{Site 2 mean occupation for $U/\gamma = 0.1$.}
+    \label{fig:twoSiteU01MeanSite2}
+  \end{subfigure}
+  \caption{
+  Comparison of the density-matrix and positive-$P$ mean occupations for the two-site system with initial Fock state $|1,0\rangle$, interaction strength $U/\gamma = 0.1$, dissipation rate $\gamma = 1$, and hopping amplitude $J = 1$. In this weaker-interaction case, the positive-$P$ trajectories remain stable over the full simulated interval.
+  }
+  \label{fig:twoSiteU01MeanComparison}
+\end{figure}

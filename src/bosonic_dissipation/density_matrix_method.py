@@ -9,7 +9,7 @@ import tracemalloc
 
 from .config import resolve_hilbert_size
 from .exact_method import _validate_initial_state
-from .io_utils import save_method_output_csv
+from .io_utils import compute_g2_from_mean_and_factorial_second_moment, save_method_output_csv
 
 
 @dataclass(slots=True)
@@ -17,6 +17,7 @@ class DensityMatrixMethodResult:
     method_name: str
     initial_state_type: str
     num_of_particles: float
+    interaction_strength: float
     gamma: float
     total_time: float
     dt: float
@@ -33,6 +34,9 @@ class DensityMatrixMethodResult:
     time_values: np.ndarray
     mean_particle_number: np.ndarray
     variance: np.ndarray
+    factorial_second_moment: np.ndarray
+    g1: np.ndarray
+    g2: np.ndarray
 
 def _build_initial_density_matrix(initial_state_type: str, hilbert_size: int, num_of_particles: float):
     import qutip as qt
@@ -53,6 +57,7 @@ def simulate_density_matrix_method(
     *,
     initial_state_type: str,
     num_of_particles: float,
+    interaction_strength: float = 0.0,
     gamma: float,
     time: float,
     dt: float,
@@ -82,8 +87,8 @@ def simulate_density_matrix_method(
     time_values = np.arange(0.0, time + dt, dt, dtype=float)
     a = qt.destroy(hilbert_size)
     n_op = a.dag() * a
-    n_sq_op = n_op * n_op
-    hamiltonian = 0 * a
+    factorial_second_moment_op = (a.dag() ** 2) * (a ** 2)
+    hamiltonian = 0.5 * interaction_strength * (a.dag() ** 2) * (a ** 2)
     collapse_operators = [np.sqrt(gamma) * a]
     rho0, coherent_alpha = _build_initial_density_matrix(
         initial_state_type=initial_state_type,
@@ -94,15 +99,17 @@ def simulate_density_matrix_method(
 
     tracemalloc.start()
     solve_start = perf_counter()
-    result = qt.mesolve(hamiltonian, rho0, time_values, collapse_operators, [n_op, n_sq_op])
+    result = qt.mesolve(hamiltonian, rho0, time_values, collapse_operators, [a, n_op, factorial_second_moment_op])
     _, solver_peak_bytes = tracemalloc.get_traced_memory()
     tracemalloc.stop()
     solve_runtime_seconds = perf_counter() - solve_start
 
     postprocess_start = perf_counter()
-    mean_particle_number = np.real_if_close(np.asarray(result.expect[0], dtype=np.complex128)).astype(float)
-    n_sq_values = np.real_if_close(np.asarray(result.expect[1], dtype=np.complex128)).astype(float)
-    variance = np.maximum(n_sq_values - mean_particle_number**2, 0.0)
+    g1 = np.asarray(result.expect[0], dtype=np.complex128)
+    mean_particle_number = np.real_if_close(np.asarray(result.expect[1], dtype=np.complex128)).astype(float)
+    factorial_second_moment = np.real_if_close(np.asarray(result.expect[2], dtype=np.complex128)).astype(float)
+    variance = factorial_second_moment + mean_particle_number - mean_particle_number**2
+    g2 = compute_g2_from_mean_and_factorial_second_moment(mean_particle_number, factorial_second_moment)
     postprocess_runtime_seconds = perf_counter() - postprocess_start
 
     total_runtime_seconds = perf_counter() - total_start
@@ -110,6 +117,7 @@ def simulate_density_matrix_method(
         method_name="densityMatrix",
         initial_state_type=initial_state_type,
         num_of_particles=num_of_particles,
+        interaction_strength=interaction_strength,
         gamma=gamma,
         total_time=time,
         dt=dt,
@@ -126,6 +134,9 @@ def simulate_density_matrix_method(
         time_values=time_values,
         mean_particle_number=mean_particle_number,
         variance=variance,
+        factorial_second_moment=factorial_second_moment,
+        g1=g1,
+        g2=g2,
     )
 
 
@@ -134,6 +145,7 @@ def run_density_matrix_and_save(
     *,
     initial_state_type: str,
     num_of_particles: float,
+    interaction_strength: float = 0.0,
     gamma: float,
     time: float,
     dt: float,
@@ -143,6 +155,7 @@ def run_density_matrix_and_save(
     result = simulate_density_matrix_method(
         initial_state_type=initial_state_type,
         num_of_particles=num_of_particles,
+        interaction_strength=interaction_strength,
         gamma=gamma,
         time=time,
         dt=dt,
@@ -154,6 +167,7 @@ def run_density_matrix_and_save(
         method_name=result.method_name,
         initial_state_type=result.initial_state_type,
         num_of_particles=result.num_of_particles,
+        interaction_strength=result.interaction_strength,
         gamma=result.gamma,
         time=result.total_time,
         dt=result.dt,
@@ -163,5 +177,12 @@ def run_density_matrix_and_save(
         time_values=result.time_values,
         mean_values=result.mean_particle_number,
         variance_values=result.variance,
+        extra_columns={
+            "factorial_second_moment": result.factorial_second_moment,
+            "g1_real": np.real(result.g1),
+            "g1_imag": np.imag(result.g1),
+            "g1_magnitude": np.abs(result.g1),
+            "g2": result.g2,
+        },
     )
     return result, output_path

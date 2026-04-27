@@ -1,0 +1,19 @@
+Method: exact
+- initial_state_type = coherent
+- num_of_particles = 10.0
+- gamma = 0.0
+- time = 5.0
+- dt = 0.001
+- num_of_samples = 1
+- interaction_strength = 0.0
+- seed = not used
+- backend used = cpu
+- setup_runtime_seconds = 0.000032
+- solve_runtime_seconds = 0.000875
+- postprocess_runtime_seconds = 0.000192
+- total_runtime_seconds = 0.001104
+- solver_peak_python_memory = not tracked
+- peak_process_memory = 275.238 MiB
+- output points = 5001
+- CSV size = 981.731 KiB
+- CSV path = C:\Users\PREDATOR NEO 16\Desktop\Final Thesis Code\outputs\11_part1_gamma0_u0_numParticles10_method_comparison\csv\exact_coherent10_u0_gamma0_time5_dt0p001_numOfSamples1.csv

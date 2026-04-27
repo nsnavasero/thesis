@@ -42,8 +42,15 @@ def get_bundle_directories(project_root: Path, bundle_name: str) -> dict[str, Pa
     }
 
 
-def get_shared_settings(*, gamma: float = 1.0, time: float = 5.0, dt: float = 1e-3) -> dict:
+def get_shared_settings(
+    *,
+    interaction_strength: float = 0.0,
+    gamma: float = 1.0,
+    time: float = 5.0,
+    dt: float = 1e-3,
+) -> dict:
     return {
+        "interaction_strength": interaction_strength,
         "gamma": gamma,
         "time": time,
         "dt": dt,
@@ -61,8 +68,8 @@ def get_method_specs(*, monte_carlo_samples: int = 1000, positive_p_samples: int
     return [
         ("exact", {"num_of_samples": 1}),
         ("densityMatrix", {"num_of_samples": 1}),
-        ("monteCarlo", {"num_of_samples": monte_carlo_samples, "interaction_strength": 0.0, "seed": seed}),
-        ("positiveP", {"num_of_samples": positive_p_samples, "interaction_strength": 0.0, "seed": seed}),
+        ("monteCarlo", {"num_of_samples": monte_carlo_samples, "seed": seed}),
+        ("positiveP", {"num_of_samples": positive_p_samples, "seed": seed}),
     ]
 
 
@@ -227,6 +234,7 @@ def write_benchmark_files(benchmark_entries: list[dict], *, benchmark_dir: Path)
             method_name=entry["method_name"],
             initial_state_type=params["initial_state_type"],
             num_of_particles=params["num_of_particles"],
+            interaction_strength=params.get("interaction_strength"),
             gamma=params["gamma"],
             time=params["time"],
             dt=params["dt"],

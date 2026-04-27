@@ -1,0 +1,50 @@
+% !TEX root =  main.tex
+\chapter{Benchmarking the methods}
+%%%%%%%%%%%%%BETTER WAY TO PARSE THIS DATA BY HIGHLIGHTING IMPORTANT STUFF IM DESCRIBING HERE. REMAKE GRAPHS
+\hspace{\parindent}Next, we perform a performance benchmark by examining the estimated runtime and peak process memory in each solver. For varying number of samples, initial state, and interaction term $U$, the runtime and memory used for each method was measured. We discuss the distinct characteristics of each method when applicable as well as possible error in the benchmark data. The table of values of the graphs in this subsection are included in Appendix~\ref{app:table_benchmark}.
+
+% \hspace{\parindent}The runtime for direct integration of density matrix significantly increase when the particle number is increase from 100 to 1000, as shown in the top panel of Fig.~\ref{fig:benchmarkGamma1U0}. While this is generally true for all the methods considered in this thesis, the steep increase in the runtime is notable for the direct integration of the density matrix. Monte Carlo was not able to run at 1000 particles. These apply for all the figures in this section.
+
+\hspace{\parindent} Fig.~\ref{fig:benchmarkGamma1U0} shows the runtime used for each of the methods with Fock and coherent state initializations where $U=0$. The Monte Carlo method is the slowest of them all, as to be expected since it is the only method here that averages over several samples as well as the size of the Hilbert space. The second slowest is the density matrix method as its calculations scale with the size of the Hilbert space. The exact and positive-P methods are around the same in terms of runtime. Positive-P only needed to run one sample since the interaction term is zero. This highlights a unique advantage of positive-P where it can accurately give the same results around as fast as an exact solution implementation.
+
+\begin{figure}[h]
+  \centering
+  \includesvg[width=0.8\columnwidth]{benchmark bar graphs/runtime_gamma1_u0.svg}\\
+  %\includesvg[width=0.8\columnwidth]{benchmark bar graphs/memory_gamma1_u0.svg}\\
+  \caption{
+  Benchmark runtime and peak process memory for all methods at $\gamma=1$ and $U=0$ as functions of particle number. 
+  }
+  \label{fig:benchmarkGamma1U0}
+\end{figure}
+
+\hspace{\parindent} Fig.~\ref{fig:benchmarkGamma1U0} shows the runtime used for each of the methods with Fock and coherent state initializations where $U=1$. The Monte Carlo method is still the slowest of them all. However, in contrast to the previous figure, the positive-P method is now the second slowest, only slightly faster than the density matrix method. Since the interaction term is nonzero, there is a non-zero noise therm in the SDEs needed to be integrated. So, positive-P needed to average over many samples, which made its runtime slower.
+
+\begin{figure}[h]
+  \centering
+  \includesvg[width=0.8\columnwidth]{benchmark bar graphs/runtime_gamma1_u1.svg}\\
+  %\includesvg[width=0.8\columnwidth]{benchmark bar graphs/memory_gamma1_u1.svg}\\
+  \caption{
+  Benchmark runtime and peak process memory for all methods at $\gamma=1$ and $U=1$ as functions of particle number.
+  }
+  \label{fig:benchmarkGamma1U1}
+\end{figure}
+
+\hspace{\parindent}Most methods do not have a significant difference in runtime when comparing their initial Fock or coherent states, with the exception of Positive-P. This can be clearly seen in Fig.~\ref{fig:benchmarkGamma1U0}, where $U$ is zero, positive-P consistently performs faster when using an initial coherent state compared to a Fock state. However, in Fig.~\ref{fig:benchmarkGamma1U1}, where $U$ is nonzero, positive-P has around the same runtime regardless if it is initialized in the coherent or Fock state. The extra runtime from sampling a Fock state over many samples became negligible because positive-P was already averaging over many samples for each time step. 
+
+\hspace{\parindent} Fig.~\ref{fig:densityMatrixScaling} shows the runtime of density matrix method for increasing number of particles. The jump in runtime from 100 to 1000 particles is more significant than the jump from 1 to 10 or 10 to 100. For a Fock state, the Hilbert space size of 100 and 1000 particles are 101 and 1001 respectively. This would mean that the density matrices would have $101^2=10,201$ and $1001^2 = 1,002,001$ matrix elements respectively. Computing with a large amount of matrix elements for every timestep becomes increasing costly with a larger Hilbert space size.
+% If there was a term that possibly drives the system to a particle number more than its initial particle number, then the Hilbert size should be initialized higher, making the method slower.
+
+% The Monte Carlo code was not able to finish its computations as shown in the other runtime data in the Appendix~\ref{app:table_benchmark}.
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=0.8\columnwidth]{benchmark bar graphs/density_matrix_runtime_vs_particles_science_log_labeled}\\
+  \caption{Solve runtime of the Density Matrix method as a function of particle number, with both axes shown on logarithmic scales. The figure compares the Fock-state benchmarks for $(\gamma,U)=(1,1)$ and $(0,0)$, together with the coherent-state benchmark for $(\gamma,U)=(0,0)$, using the benchmark values at \(N=1,10,100,\) and \(1000\).}
+  \label{fig:densityMatrixScaling}
+\end{figure}
+
+
+
+
+
+
